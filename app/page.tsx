@@ -237,7 +237,7 @@ export default function Home() {
 
         {!user ? (
           <div className="mt-10 bg-white p-6 rounded-3xl shadow-md">
-            <h1 className="text-xl font-semibold mb-4 text-center">
+            <h1 className="text-xl font-semibold mb-4 text-center text-gray-900">
               Time Tracker
             </h1>
 
@@ -245,7 +245,7 @@ export default function Home() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Email"
-              className="w-full p-3 mb-3 rounded-xl border bg-white text-black"
+              className="w-full p-3 mb-3 rounded-xl border bg-white text-gray-900"
             />
 
             <input
@@ -253,7 +253,7 @@ export default function Home() {
               onChange={(e) => setPassword(e.target.value)}
               type="password"
               placeholder="Password"
-              className="w-full p-3 mb-4 rounded-xl border bg-white text-black"
+              className="w-full p-3 mb-4 rounded-xl border bg-white text-gray-900"
             />
 
             <button
@@ -265,7 +265,7 @@ export default function Home() {
 
             <button
               onClick={handleSignUp}
-              className="w-full bg-gray-200 py-3 rounded-2xl"
+              className="w-full bg-gray-200 py-3 rounded-2xl text-gray-800"
             >
               Sign Up
             </button>
@@ -273,16 +273,16 @@ export default function Home() {
         ) : (
           <div className="flex flex-col items-center">
 
-            <p className="text-center text-xs text-gray-400 mb-2">
+            <p className="text-center text-xs text-gray-600 mb-2">
               Current time: {currentTime}
             </p>
 
             <div className="bg-white/90 backdrop-blur-xl border border-gray-200 shadow-xl p-5 rounded-3xl w-full">
 
               {activeLog && (
-                <p className="text-center text-sm text-gray-500 mb-3">
+                <p className="text-center text-sm text-gray-700 mb-3">
                   You’ve been clocked in since{' '}
-                  <span className="font-semibold text-gray-800">
+                  <span className="font-semibold text-gray-900">
                     {new Date(activeLog.clock_in).toLocaleTimeString([], {
                       hour: '2-digit',
                       minute: '2-digit',
@@ -310,7 +310,7 @@ export default function Home() {
 
             <button
               onClick={handleLogout}
-              className="mt-6 text-sm text-red-500"
+              className="mt-6 text-sm text-red-600"
             >
               Logout
             </button>
