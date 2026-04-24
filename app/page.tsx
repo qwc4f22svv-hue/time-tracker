@@ -3,12 +3,15 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
-export default function Dashboard() {
+export default function Page() {
   const [user, setUser] = useState<any>(null);
   const [activeLog, setActiveLog] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // 🔐 Load + listen to auth
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  // 🔐 Load session + listen for changes
   useEffect(() => {
     const load = async (session: any) => {
       if (!session) {
@@ -31,12 +34,12 @@ export default function Dashboard() {
       setLoading(false);
     };
 
-    // initial load
+    // Initial check
     supabase.auth.getSession().then(({ data }) => {
       load(data.session);
     });
 
-    // auth listener
+    // Listen for login/logout
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -46,7 +49,24 @@ export default function Dashboard() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // ⏱ Actions
+  // 🔑 LOGIN
+  const handleLogin = async () => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      alert(error.message);
+    }
+  };
+
+  // 🚪 LOGOUT
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
+
+  // ⏱ CLOCK IN
   const handleClockIn = async () => {
     if (!user) return;
 
@@ -56,6 +76,7 @@ export default function Dashboard() {
     });
   };
 
+  // ⏱ CLOCK OUT
   const handleClockOut = async () => {
     if (!activeLog) return;
 
@@ -63,10 +84,6 @@ export default function Dashboard() {
       .from("time_logs")
       .update({ clock_out: new Date().toISOString() })
       .eq("id", activeLog.id);
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
   };
 
   if (loading) {
@@ -95,14 +112,39 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* NOT LOGGED IN */}
+      {/* 🔐 LOGIN VIEW */}
       {!user && (
-        <div className="bg-white rounded-2xl shadow-sm p-6 text-center border border-neutral-200">
-          <p className="text-neutral-700">You are not logged in</p>
+        <div className="bg-white rounded-2xl shadow-sm p-6 border border-neutral-200">
+          <h2 className="text-lg font-semibold text-neutral-900 mb-4">
+            Login
+          </h2>
+
+          <input
+            type="email"
+            placeholder="Email"
+            className="w-full mb-3 p-3 border border-neutral-300 rounded-lg text-neutral-900"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+
+          <input
+            type="password"
+            placeholder="Password"
+            className="w-full mb-4 p-3 border border-neutral-300 rounded-lg text-neutral-900"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+
+          <button
+            onClick={handleLogin}
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg font-semibold"
+          >
+            Login
+          </button>
         </div>
       )}
 
-      {/* LOGGED IN */}
+      {/* 📱 DASHBOARD */}
       {user && (
         <>
           {/* CLOCK CARD */}
@@ -150,7 +192,7 @@ export default function Dashboard() {
             <p className="text-2xl font-semibold text-neutral-900">--</p>
           </div>
 
-          {/* WEEKLY */}
+          {/* WEEK */}
           <div className="bg-white rounded-2xl shadow-sm p-5 border border-neutral-200">
             <p className="text-sm text-neutral-600 font-medium mb-4">
               This Week
