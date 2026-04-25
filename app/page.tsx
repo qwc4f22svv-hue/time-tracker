@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import TimerCard from './components/TimerCard'
 import WeeklyBreakdown from './components/WeeklyBreakdown'
+import Header from './components/Header' // ✅ ADD THIS
 import toast from 'react-hot-toast'
 
 type TimeLog = {
@@ -13,7 +14,7 @@ type TimeLog = {
   clock_out: string | null
 }
 
-// ✅ formatter for stored timestamps
+// ✅ formatter
 const formatTime = (dateString: string) =>
   new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Europe/London',
@@ -38,7 +39,7 @@ export default function Home() {
     loadUser()
   }, [])
 
-  // ✅ FIXED LIVE CLOCK
+  // ✅ LIVE CLOCK (FIXED)
   useEffect(() => {
     const interval = setInterval(() => {
       const now = new Date()
@@ -59,7 +60,10 @@ export default function Home() {
 
   // FETCH DATA
   useEffect(() => {
-    if (!user) return setActiveLog(null)
+    if (!user) {
+      setActiveLog(null)
+      return
+    }
 
     const fetchData = async () => {
       const { data: active } = await supabase
@@ -143,6 +147,10 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-100">
+
+      {/* ✅ HEADER BACK */}
+      <Header />
+
       <div className="max-w-md mx-auto px-5 pt-6 pb-10 flex flex-col gap-5">
 
         {/* BUTTON */}
@@ -160,7 +168,6 @@ export default function Home() {
             Current time
           </p>
 
-          {/* ✅ NOW SHOWS */}
           <p className="text-3xl font-semibold text-black mb-3">
             {currentTime}
           </p>
