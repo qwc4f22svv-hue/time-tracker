@@ -20,11 +20,8 @@ export default function Home() {
 
   const [activeLog, setActiveLog] = useState<TimeLog | null>(null)
   const [logs, setLogs] = useState<TimeLog[]>([])
-  const [elapsed, setElapsed] = useState(0)
 
   const [saving, setSaving] = useState(false)
-  const [resumeMode, setResumeMode] = useState(false)
-
   const [currentTime, setCurrentTime] = useState('')
 
   // AUTH
@@ -57,18 +54,6 @@ export default function Home() {
     return () => clearInterval(interval)
   }, [])
 
-  // TIMER
-  useEffect(() => {
-    if (!activeLog || !resumeMode) return
-
-    const interval = setInterval(() => {
-      const start = new Date(activeLog.clock_in).getTime()
-      setElapsed(Math.floor((Date.now() - start) / 1000))
-    }, 1000)
-
-    return () => clearInterval(interval)
-  }, [activeLog, resumeMode])
-
   // FETCH DATA
   useEffect(() => {
     if (!user) {
@@ -86,7 +71,6 @@ export default function Home() {
 
       if (active && active.clock_out === null) {
         setActiveLog(active)
-        setResumeMode(false)
       } else {
         setActiveLog(null)
       }
@@ -133,7 +117,6 @@ export default function Home() {
     await supabase.auth.signOut()
     setUser(null)
     setActiveLog(null)
-    setResumeMode(false)
     toast('Logged out')
   }
 
@@ -168,7 +151,6 @@ export default function Home() {
       toast.error('Failed to clock in')
     } else {
       setActiveLog(data)
-      setResumeMode(true)
       toast.success('Clocked in ✅')
     }
 
@@ -193,7 +175,6 @@ export default function Home() {
     }
 
     setActiveLog(null)
-    setResumeMode(false)
     setSaving(false)
   }
 
@@ -294,7 +275,6 @@ export default function Home() {
 
               <TimerCard
                 activeLog={activeLog}
-                elapsed={elapsed}
                 saving={saving}
                 onClockIn={clockIn}
                 onClockOut={clockOut}
