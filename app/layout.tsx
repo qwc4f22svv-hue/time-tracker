@@ -1,8 +1,7 @@
 import { Toaster } from 'react-hot-toast'
-import BottomNav from './components/BottomNav'
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
-import HeaderWrapper from "./components/HeaderWrapper"
+import ClientLayout from "./components/ClientLayout"
 import "./globals.css"
 
 const geistSans = Geist({
@@ -32,18 +31,14 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-white text-black">
 
-        {/* ✅ Header controlled here */}
-        <HeaderWrapper />
-
         {/* Toasts */}
         <Toaster position="top-center" />
 
         <main className="flex-1 w-full">
-          {children}
+          <ClientLayout>
+            {children}
+          </ClientLayout>
         </main>
-
-        {/* Bottom Nav */}
-        <BottomNav />
 
       </body>
     </html>

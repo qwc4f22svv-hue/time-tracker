@@ -1,4 +1,3 @@
-
 'use client'
 
 import Link from 'next/link'
@@ -7,9 +6,6 @@ import { Home, Clock } from 'lucide-react'
 
 export default function BottomNav() {
   const pathname = usePathname()
-
-  // ✅ Hide nav on login page
-  if (pathname === '/') return null
 
   const navItems = [
     { name: 'Home', href: '/', icon: Home },
@@ -28,20 +24,19 @@ export default function BottomNav() {
             <Link
               key={item.name}
               href={item.href}
-              className="flex flex-col items-center justify-center text-xs"
+              className="flex flex-col items-center text-xs"
             >
               <div
-                className={`flex flex-col items-center transition-all duration-200 ${
+                className={`flex flex-col items-center ${
                   isActive
                     ? 'text-green-600 scale-105'
                     : 'text-black opacity-60'
                 }`}
               >
-                <Icon size={22} strokeWidth={2.2} />
+                <Icon size={22} />
                 <span className="mt-1 font-medium">{item.name}</span>
               </div>
 
-              {/* active indicator */}
               {isActive && (
                 <div className="mt-1 h-[3px] w-6 rounded-full bg-green-600" />
               )}
