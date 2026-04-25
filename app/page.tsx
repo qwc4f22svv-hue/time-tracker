@@ -13,15 +13,16 @@ type TimeLog = {
   clock_out: string | null
 }
 
-// ✅ CENTRAL TIME FORMATTER (important)
-const formatTime = (date: Date, withSeconds = false) =>
-  new Intl.DateTimeFormat('en-GB', {
+// ✅ SINGLE SOURCE OF TRUTH
+const formatTime = (dateString: string, withSeconds = false) => {
+  return new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Europe/London',
     hour: '2-digit',
     minute: '2-digit',
     second: withSeconds ? '2-digit' : undefined,
     hour12: false,
-  }).format(date)
+  }).format(new Date(dateString + 'Z')) // 🔥 force UTC
+}
 
 export default function Home() {
   const [user, setUser] = useState<any>(null)
@@ -47,11 +48,19 @@ export default function Home() {
     return () => { mounted = false }
   }, [])
 
-  // ✅ LIVE CLOCK (fixed)
+  // ✅ LIVE CLOCK (correct + consistent)
   useEffect(() => {
     const interval = setInterval(() => {
       const now = new Date()
-      setCurrentTime(formatTime(now, true))
+      setCurrentTime(
+        new Intl.DateTimeFormat('en-GB', {
+          timeZone: 'Europe/London',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+        }).format(now)
+      )
     }, 1000)
 
     return () => clearInterval(interval)
@@ -183,9 +192,9 @@ export default function Home() {
 
   // HELPERS
   const getDuration = (log: TimeLog) => {
-    const start = new Date(log.clock_in).getTime()
+    const start = new Date(log.clock_in + 'Z').getTime()
     const end = log.clock_out
-      ? new Date(log.clock_out).getTime()
+      ? new Date(log.clock_out + 'Z').getTime()
       : Date.now()
     return end - start
   }
@@ -207,7 +216,7 @@ export default function Home() {
   const weekData = days.map((day, index) => {
     const total = logs
       .filter((log) => {
-        const date = new Date(log.clock_in)
+        const date = new Date(log.clock_in + 'Z')
         return date >= startOfWeek && date.getDay() === (index + 1) % 7
       })
       .reduce((sum, log) => sum + getDuration(log), 0)
@@ -267,7 +276,7 @@ export default function Home() {
                 <p className="text-center text-sm text-gray-700 mb-3">
                   You’ve been clocked in since{' '}
                   <span className="font-semibold text-gray-900">
-                    {formatTime(new Date(activeLog.clock_in))}
+                    {formatTime(activeLog.clock_in)}
                   </span>
                 </p>
               )}
