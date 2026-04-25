@@ -13,7 +13,7 @@ type TimeLog = {
   clock_out: string | null
 }
 
-// FORMAT TIME (UTC → London)
+// FORMAT TIME
 const formatTime = (dateString: string) =>
   new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Europe/London',
@@ -24,16 +24,23 @@ const formatTime = (dateString: string) =>
 
 export default function Home() {
   const [user, setUser] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+
   const [activeLog, setActiveLog] = useState<TimeLog | null>(null)
   const [logs, setLogs] = useState<TimeLog[]>([])
+
   const [saving, setSaving] = useState(false)
   const [currentTime, setCurrentTime] = useState('')
 
-  // AUTH
+  // AUTH LOAD
   useEffect(() => {
     const loadUser = async () => {
       const { data } = await supabase.auth.getSession()
       setUser(data.session?.user ?? null)
+      setLoading(false)
     }
     loadUser()
   }, [])
@@ -59,10 +66,7 @@ export default function Home() {
 
   // FETCH DATA
   useEffect(() => {
-    if (!user) {
-      setActiveLog(null)
-      return
-    }
+    if (!user) return
 
     const fetchData = async () => {
       const { data: active } = await supabase
@@ -85,20 +89,30 @@ export default function Home() {
     fetchData()
   }, [user])
 
-  // ✅ CLOCK IN (FIXED)
-  const clockIn = async () => {
-    if (saving) return
-
-    if (!user) {
-      toast.error('Not logged in')
+  // LOGIN
+  const handleLogin = async () => {
+    if (!email || !password) {
+      toast.error('Enter email + password')
       return
     }
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (error) return toast.error(error.message)
+
+    setUser(data.user)
+  }
+
+  // CLOCK IN
+  const clockIn = async () => {
+    if (saving || !user) return
 
     setSaving(true)
 
     try {
-      console.log('CLOCK IN CLICKED')
-
       const { data, error } = await supabase
         .from('time_logs')
         .insert([
@@ -112,19 +126,17 @@ export default function Home() {
 
       if (error) throw error
 
-      console.log('SUCCESS', data)
-
       setActiveLog(data)
       toast.success('Clocked in')
     } catch (err) {
-      console.error('CLOCK IN ERROR:', err)
+      console.error(err)
       toast.error('Clock in failed')
     } finally {
       setSaving(false)
     }
   }
 
-  // ✅ CLOCK OUT (FIXED)
+  // CLOCK OUT
   const clockOut = async () => {
     if (!activeLog || saving) return
 
@@ -141,7 +153,7 @@ export default function Home() {
       setActiveLog(null)
       toast.success('Clocked out')
     } catch (err) {
-      console.error('CLOCK OUT ERROR:', err)
+      console.error(err)
       toast.error('Clock out failed')
     } finally {
       setSaving(false)
@@ -182,11 +194,51 @@ export default function Home() {
     return { day, total }
   })
 
+  // LOADING STATE
+  if (loading) {
+    return <div className="p-6 text-center">Loading...</div>
+  }
+
+  // LOGIN SCREEN
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+        <div className="bg-white p-6 rounded-3xl shadow-lg w-full max-w-sm">
+          <h1 className="text-xl font-semibold mb-4 text-center">
+            Login
+          </h1>
+
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email"
+            className="w-full p-3 mb-3 border rounded-xl"
+          />
+
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password"
+            className="w-full p-3 mb-4 border rounded-xl"
+          />
+
+          <button
+            onClick={handleLogin}
+            className="w-full bg-green-600 text-white py-3 rounded-xl"
+          >
+            Login
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // MAIN APP
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-100">
       <div className="max-w-md mx-auto px-5 pt-6 pb-10 flex flex-col gap-5">
 
-        {/* BUTTON */}
         <TimerCard
           activeLog={activeLog}
           saving={saving}
@@ -194,29 +246,24 @@ export default function Home() {
           onClockOut={clockOut}
         />
 
-        {/* TIME CARD */}
         <div className="bg-white shadow-xl border border-gray-300 rounded-3xl p-6 text-center">
-          <p className="text-sm text-neutral-500 mb-1">
-            Current time
-          </p>
-
+          <p className="text-sm text-neutral-500 mb-1">Current time</p>
           <p className="text-3xl font-semibold text-black mb-3">
             {currentTime}
           </p>
 
           {activeLog && (
-            <p className="text-sm text-neutral-700">
+            <p className="text-sm">
               Started at{' '}
-              <span className="font-semibold text-black">
+              <span className="font-semibold">
                 {formatTime(activeLog.clock_in)}
               </span>
             </p>
           )}
         </div>
 
-        {/* WEEKLY */}
         <div className="bg-white shadow-xl border border-gray-300 rounded-3xl p-5">
-          <h2 className="text-lg font-semibold text-black mb-4">
+          <h2 className="text-lg font-semibold mb-4">
             Weekly Breakdown
           </h2>
 
