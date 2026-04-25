@@ -7,7 +7,6 @@ type TimeLog = {
 
 type Props = {
   activeLog: TimeLog | null
-  elapsed: number
   saving: boolean
   onClockIn: () => void
   onClockOut: () => void
@@ -15,36 +14,43 @@ type Props = {
 
 export default function TimerCard({
   activeLog,
-  elapsed,
   saving,
   onClockIn,
   onClockOut,
 }: Props) {
   return (
-    <div className="bg-neutral-900 p-4 rounded-xl mb-6">
-      {activeLog ? (
-        <>
-          <p className="text-3xl font-semibold mb-4 text-center">
-            {Math.floor(elapsed / 60)}m {elapsed % 60}s
+    <>
+      <div className="bg-neutral-900 p-4 rounded-xl mb-24">
+        {activeLog ? (
+          <p className="text-center text-sm text-gray-400">
+            Session active
           </p>
+        ) : (
+          <p className="text-center text-sm text-gray-400">
+            Not clocked in
+          </p>
+        )}
+      </div>
 
+      <div className="fixed bottom-4 left-0 right-0 px-4 max-w-md mx-auto">
+        {activeLog ? (
           <button
             onClick={onClockOut}
             disabled={saving}
-            className="w-full bg-red-600 py-3 rounded-lg font-semibold"
+            className="w-full bg-red-600 py-4 rounded-2xl font-semibold text-white shadow-lg active:scale-95 transition"
           >
             {saving ? 'Saving...' : 'Clock Out'}
           </button>
-        </>
-      ) : (
-        <button
-          onClick={onClockIn}
-          disabled={saving}
-          className="w-full bg-green-600 py-3 rounded-lg font-semibold"
-        >
-          {saving ? 'Saving...' : 'Clock In'}
-        </button>
-      )}
-    </div>
+        ) : (
+          <button
+            onClick={onClockIn}
+            disabled={saving}
+            className="w-full bg-green-600 py-4 rounded-2xl font-semibold text-white shadow-lg active:scale-95 transition"
+          >
+            {saving ? 'Saving...' : 'Clock In'}
+          </button>
+        )}
+      </div>
+    </>
   )
 }
