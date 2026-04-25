@@ -13,13 +13,12 @@ type TimeLog = {
   clock_out: string | null
 }
 
-// ✅ consistent time formatter
-const formatTime = (dateString: string, withSeconds = false) =>
+// ✅ formatter for stored timestamps
+const formatTime = (dateString: string) =>
   new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Europe/London',
     hour: '2-digit',
     minute: '2-digit',
-    second: withSeconds ? '2-digit' : undefined,
     hour12: false,
   }).format(new Date(dateString + 'Z'))
 
@@ -39,10 +38,20 @@ export default function Home() {
     loadUser()
   }, [])
 
-  // LIVE CLOCK
+  // ✅ FIXED LIVE CLOCK
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentTime(formatTime(new Date().toISOString(), true))
+      const now = new Date()
+
+      setCurrentTime(
+        new Intl.DateTimeFormat('en-GB', {
+          timeZone: 'Europe/London',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+        }).format(now)
+      )
     }, 1000)
 
     return () => clearInterval(interval)
@@ -50,10 +59,7 @@ export default function Home() {
 
   // FETCH DATA
   useEffect(() => {
-    if (!user) {
-      setActiveLog(null)
-      return
-    }
+    if (!user) return setActiveLog(null)
 
     const fetchData = async () => {
       const { data: active } = await supabase
@@ -76,48 +82,33 @@ export default function Home() {
     fetchData()
   }, [user])
 
-  // CLOCK IN
   const clockIn = async () => {
     if (saving) return
     setSaving(true)
 
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('time_logs')
       .insert([{ user_id: user.id, clock_in: new Date().toISOString() }])
       .select()
       .single()
 
-    if (error) {
-      toast.error('Failed to clock in')
-    } else {
-      setActiveLog(data)
-      toast.success('Clocked in')
-    }
-
+    setActiveLog(data)
     setSaving(false)
   }
 
-  // CLOCK OUT
   const clockOut = async () => {
-    if (!activeLog || saving) return
+    if (!activeLog) return
     setSaving(true)
 
-    const { error } = await supabase
+    await supabase
       .from('time_logs')
       .update({ clock_out: new Date().toISOString() })
       .eq('id', activeLog.id)
-
-    if (error) {
-      toast.error('Failed to clock out')
-    } else {
-      toast.success('Clocked out')
-    }
 
     setActiveLog(null)
     setSaving(false)
   }
 
-  // HELPERS
   const getDuration = (log: TimeLog) => {
     const start = new Date(log.clock_in + 'Z').getTime()
     const end = log.clock_out
@@ -133,7 +124,6 @@ export default function Home() {
     return h > 0 ? `${h}h ${m}m` : `${m}m`
   }
 
-  // WEEK DATA
   const startOfWeek = new Date()
   startOfWeek.setDate(startOfWeek.getDate() - (startOfWeek.getDay() || 7) + 1)
   startOfWeek.setHours(0, 0, 0, 0)
@@ -155,7 +145,7 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-100">
       <div className="max-w-md mx-auto px-5 pt-6 pb-10 flex flex-col gap-5">
 
-        {/* 🔥 TOP ACTION */}
+        {/* BUTTON */}
         <TimerCard
           activeLog={activeLog}
           saving={saving}
@@ -164,12 +154,13 @@ export default function Home() {
         />
 
         {/* TIME CARD */}
-        <div className="bg-white shadow-lg border border-gray-100 rounded-3xl p-6 text-center">
+        <div className="bg-white shadow-xl border border-gray-300 rounded-3xl p-6 text-center">
 
           <p className="text-sm text-neutral-500 mb-1">
             Current time
           </p>
 
+          {/* ✅ NOW SHOWS */}
           <p className="text-3xl font-semibold text-black mb-3">
             {currentTime}
           </p>
@@ -185,7 +176,7 @@ export default function Home() {
         </div>
 
         {/* WEEKLY */}
-        <div className="bg-white shadow-lg border border-gray-100 rounded-3xl p-5">
+        <div className="bg-white shadow-xl border border-gray-300 rounded-3xl p-5">
           <h2 className="text-lg font-semibold text-black mb-4">
             Weekly Breakdown
           </h2>
