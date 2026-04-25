@@ -3,12 +3,24 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Home, Clock } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { supabase } from '../../lib/supabase'
 
 export default function BottomNav() {
   const pathname = usePathname()
+  const [user, setUser] = useState<any>(null)
 
-  // ❌ Hide on login page
-  if (pathname === '/') return null
+  useEffect(() => {
+    const getUser = async () => {
+      const { data } = await supabase.auth.getSession()
+      setUser(data.session?.user ?? null)
+    }
+
+    getUser()
+  }, [])
+
+  // ❌ Hide if not logged in
+  if (!user) return null
 
   const navItems = [
     { name: 'Home', href: '/', icon: Home },
@@ -30,13 +42,13 @@ export default function BottomNav() {
               className="flex flex-col items-center text-xs"
             >
               <div
-                className={`flex flex-col items-center transition ${
+                className={`flex flex-col items-center ${
                   isActive
                     ? 'text-green-600 scale-105'
                     : 'text-black opacity-60'
                 }`}
               >
-                <Icon size={22} strokeWidth={2.2} />
+                <Icon size={22} />
                 <span className="mt-1 font-medium">{item.name}</span>
               </div>
 
