@@ -1,11 +1,8 @@
-'use client'
-
 import { Toaster } from 'react-hot-toast'
 import BottomNav from './components/BottomNav'
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
-import Header from "./components/Header"
-import { usePathname } from 'next/navigation'
+import HeaderWrapper from "./components/HeaderWrapper"
 import "./globals.css"
 
 const geistSans = Geist({
@@ -28,20 +25,15 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const pathname = usePathname()
-
-  const isLoginPage = pathname === '/'
-
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      {/* ✅ FIX: remove black background */}
       <body className="min-h-full flex flex-col bg-white text-black">
 
-        {/* ✅ Hide header on login */}
-        {!isLoginPage && <Header />}
+        {/* ✅ Header controlled here */}
+        <HeaderWrapper />
 
         {/* Toasts */}
         <Toaster position="top-center" />
@@ -50,7 +42,7 @@ export default function RootLayout({
           {children}
         </main>
 
-        {/* ✅ Bottom nav (auto-hidden via its own logic too) */}
+        {/* Bottom Nav */}
         <BottomNav />
 
       </body>
