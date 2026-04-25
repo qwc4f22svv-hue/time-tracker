@@ -13,6 +13,16 @@ type TimeLog = {
   clock_out: string | null
 }
 
+// ✅ CENTRAL TIME FORMATTER (important)
+const formatTime = (date: Date, withSeconds = false) =>
+  new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/London',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: withSeconds ? '2-digit' : undefined,
+    hour12: false,
+  }).format(date)
+
 export default function Home() {
   const [user, setUser] = useState<any>(null)
   const [email, setEmail] = useState('')
@@ -37,18 +47,11 @@ export default function Home() {
     return () => { mounted = false }
   }, [])
 
-  // LIVE CLOCK
+  // ✅ LIVE CLOCK (fixed)
   useEffect(() => {
     const interval = setInterval(() => {
       const now = new Date()
-      setCurrentTime(
-        now.toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: false,
-        })
-      )
+      setCurrentTime(formatTime(now, true))
     }, 1000)
 
     return () => clearInterval(interval)
@@ -264,11 +267,7 @@ export default function Home() {
                 <p className="text-center text-sm text-gray-700 mb-3">
                   You’ve been clocked in since{' '}
                   <span className="font-semibold text-gray-900">
-                    {new Date(activeLog.clock_in).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      hour12: false,
-                    })}
+                    {formatTime(new Date(activeLog.clock_in))}
                   </span>
                 </p>
               )}
