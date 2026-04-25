@@ -13,7 +13,6 @@ type TimeLog = {
   clock_out: string | null
 }
 
-// ✅ SINGLE SOURCE OF TRUTH
 const formatTime = (dateString: string, withSeconds = false) => {
   return new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Europe/London',
@@ -21,7 +20,7 @@ const formatTime = (dateString: string, withSeconds = false) => {
     minute: '2-digit',
     second: withSeconds ? '2-digit' : undefined,
     hour12: false,
-  }).format(new Date(dateString + 'Z')) // 🔥 force UTC
+  }).format(new Date(dateString + 'Z'))
 }
 
 export default function Home() {
@@ -35,7 +34,6 @@ export default function Home() {
   const [saving, setSaving] = useState(false)
   const [currentTime, setCurrentTime] = useState('')
 
-  // AUTH
   useEffect(() => {
     let mounted = true
 
@@ -48,7 +46,6 @@ export default function Home() {
     return () => { mounted = false }
   }, [])
 
-  // ✅ LIVE CLOCK (correct + consistent)
   useEffect(() => {
     const interval = setInterval(() => {
       const now = new Date()
@@ -66,7 +63,6 @@ export default function Home() {
     return () => clearInterval(interval)
   }, [])
 
-  // FETCH DATA
   useEffect(() => {
     if (!user) {
       setActiveLog(null)
@@ -81,11 +77,7 @@ export default function Home() {
         .is('clock_out', null)
         .maybeSingle()
 
-      if (active && active.clock_out === null) {
-        setActiveLog(active)
-      } else {
-        setActiveLog(null)
-      }
+      setActiveLog(active && active.clock_out === null ? active : null)
 
       const { data } = await supabase
         .from('time_logs')
@@ -98,7 +90,6 @@ export default function Home() {
     fetchData()
   }, [user])
 
-  // LOGIN
   const handleLogin = async () => {
     if (!email || !password) {
       toast.error('Enter email and password')
@@ -116,7 +107,6 @@ export default function Home() {
     toast.success('Welcome back 👋')
   }
 
-  // SIGNUP
   const handleSignUp = async () => {
     const { error } = await supabase.auth.signUp({ email, password })
     if (error) return toast.error(error.message)
@@ -124,7 +114,6 @@ export default function Home() {
     toast.success('Signup successful 🎉')
   }
 
-  // LOGOUT
   const handleLogout = async () => {
     await supabase.auth.signOut()
     setUser(null)
@@ -132,7 +121,6 @@ export default function Home() {
     toast('Logged out')
   }
 
-  // CLOCK IN
   const clockIn = async () => {
     if (saving) return
     setSaving(true)
@@ -159,9 +147,8 @@ export default function Home() {
       .select()
       .single()
 
-    if (error) {
-      toast.error('Failed to clock in')
-    } else {
+    if (error) toast.error('Failed to clock in')
+    else {
       setActiveLog(data)
       toast.success('Clocked in ✅')
     }
@@ -169,7 +156,6 @@ export default function Home() {
     setSaving(false)
   }
 
-  // CLOCK OUT
   const clockOut = async () => {
     if (!activeLog || saving) return
     setSaving(true)
@@ -180,17 +166,13 @@ export default function Home() {
       .eq('id', activeLog.id)
       .eq('user_id', user.id)
 
-    if (error) {
-      toast.error('Failed to clock out')
-    } else {
-      toast.success('Clocked out 👋')
-    }
+    if (error) toast.error('Failed to clock out')
+    else toast.success('Clocked out 👋')
 
     setActiveLog(null)
     setSaving(false)
   }
 
-  // HELPERS
   const getDuration = (log: TimeLog) => {
     const start = new Date(log.clock_in + 'Z').getTime()
     const end = log.clock_out
@@ -206,7 +188,6 @@ export default function Home() {
     return h > 0 ? `${h}h ${m}m` : `${m}m`
   }
 
-  // WEEK DATA
   const startOfWeek = new Date()
   startOfWeek.setDate(startOfWeek.getDate() - (startOfWeek.getDay() || 7) + 1)
   startOfWeek.setHours(0, 0, 0, 0)
@@ -225,12 +206,12 @@ export default function Home() {
   })
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-200">
-      <div className="w-full max-w-md mx-auto px-4 pt-4 pb-24">
+    <div className="min-h-screen bg-gradient-to-b from-gray-100 to-gray-200">
+      <div className="w-full max-w-md mx-auto px-5 pt-6 pb-28">
 
         {!user ? (
-          <div className="mt-10 bg-white p-6 rounded-3xl shadow-md">
-            <h1 className="text-xl font-semibold mb-4 text-center text-gray-900">
+          <div className="mt-12 bg-white p-7 rounded-3xl shadow-lg border border-gray-100">
+            <h1 className="text-2xl font-semibold mb-6 text-center text-black">
               Time Tracker
             </h1>
 
@@ -238,7 +219,7 @@ export default function Home() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Email"
-              className="w-full p-3 mb-3 rounded-xl border bg-white text-gray-900"
+              className="w-full p-3 mb-4 rounded-xl border border-gray-300 bg-white text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
 
             <input
@@ -246,36 +227,36 @@ export default function Home() {
               onChange={(e) => setPassword(e.target.value)}
               type="password"
               placeholder="Password"
-              className="w-full p-3 mb-4 rounded-xl border bg-white text-gray-900"
+              className="w-full p-3 mb-5 rounded-xl border border-gray-300 bg-white text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
 
             <button
               onClick={handleLogin}
-              className="w-full bg-blue-600 text-white py-3 rounded-2xl mb-2 shadow active:scale-95 transition"
+              className="w-full bg-blue-600 text-white py-3 rounded-2xl mb-3 shadow active:scale-95 transition"
             >
               Login
             </button>
 
             <button
               onClick={handleSignUp}
-              className="w-full bg-gray-200 py-3 rounded-2xl text-gray-800"
+              className="w-full bg-gray-100 py-3 rounded-2xl text-black"
             >
               Sign Up
             </button>
           </div>
         ) : (
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col gap-5">
 
-            <p className="text-center text-xs text-gray-600 mb-2">
+            <p className="text-center text-sm text-black">
               Current time: {currentTime}
             </p>
 
-            <div className="bg-white/90 backdrop-blur-xl border border-gray-200 shadow-xl p-5 rounded-3xl w-full">
+            <div className="bg-white border border-gray-100 shadow-lg p-6 rounded-3xl">
 
               {activeLog && (
-                <p className="text-center text-sm text-gray-700 mb-3">
+                <p className="text-center text-base text-black mb-4">
                   You’ve been clocked in since{' '}
-                  <span className="font-semibold text-gray-900">
+                  <span className="font-semibold">
                     {formatTime(activeLog.clock_in)}
                   </span>
                 </p>
@@ -289,7 +270,7 @@ export default function Home() {
               />
             </div>
 
-            <div className="mt-5 bg-white p-4 rounded-3xl shadow-md w-full">
+            <div className="bg-white border border-gray-100 shadow-lg p-5 rounded-3xl">
               <WeeklyBreakdown
                 weekData={weekData}
                 formatDuration={formatDuration}
@@ -298,7 +279,7 @@ export default function Home() {
 
             <button
               onClick={handleLogout}
-              className="mt-6 text-sm text-red-600"
+              className="mt-2 text-sm text-red-600 text-center"
             >
               Logout
             </button>
