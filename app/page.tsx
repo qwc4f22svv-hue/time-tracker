@@ -13,7 +13,7 @@ type TimeLog = {
   clock_out: string | null
 }
 
-// Format stored timestamps (UTC → London)
+// FORMAT TIME (UTC → London)
 const formatTime = (dateString: string) =>
   new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Europe/London',
@@ -38,7 +38,7 @@ export default function Home() {
     loadUser()
   }, [])
 
-  // LIVE CLOCK (reliable)
+  // LIVE CLOCK
   useEffect(() => {
     const interval = setInterval(() => {
       const now = new Date()
@@ -85,33 +85,49 @@ export default function Home() {
     fetchData()
   }, [user])
 
-  // CLOCK IN (safe)
+  // ✅ CLOCK IN (FIXED)
   const clockIn = async () => {
-    if (saving || !user) return
+    if (saving) return
+
+    if (!user) {
+      toast.error('Not logged in')
+      return
+    }
+
     setSaving(true)
 
     try {
+      console.log('CLOCK IN CLICKED')
+
       const { data, error } = await supabase
         .from('time_logs')
-        .insert([{ user_id: user.id, clock_in: new Date().toISOString() }])
+        .insert([
+          {
+            user_id: user.id,
+            clock_in: new Date().toISOString(),
+          },
+        ])
         .select()
         .single()
 
       if (error) throw error
 
+      console.log('SUCCESS', data)
+
       setActiveLog(data)
       toast.success('Clocked in')
     } catch (err) {
-      console.error(err)
+      console.error('CLOCK IN ERROR:', err)
       toast.error('Clock in failed')
     } finally {
       setSaving(false)
     }
   }
 
-  // CLOCK OUT (safe)
+  // ✅ CLOCK OUT (FIXED)
   const clockOut = async () => {
     if (!activeLog || saving) return
+
     setSaving(true)
 
     try {
@@ -125,7 +141,7 @@ export default function Home() {
       setActiveLog(null)
       toast.success('Clocked out')
     } catch (err) {
-      console.error(err)
+      console.error('CLOCK OUT ERROR:', err)
       toast.error('Clock out failed')
     } finally {
       setSaving(false)
@@ -170,7 +186,7 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-100">
       <div className="max-w-md mx-auto px-5 pt-6 pb-10 flex flex-col gap-5">
 
-        {/* TOP BUTTON */}
+        {/* BUTTON */}
         <TimerCard
           activeLog={activeLog}
           saving={saving}
