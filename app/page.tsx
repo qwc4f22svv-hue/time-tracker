@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import TimerCard from './components/TimerCard'
 import WeeklyBreakdown from './components/WeeklyBreakdown'
-import Header from './components/Header' // ✅ ADD THIS
+import Header from './components/Header'
 import toast from 'react-hot-toast'
 
 type TimeLog = {
@@ -14,7 +14,7 @@ type TimeLog = {
   clock_out: string | null
 }
 
-// ✅ formatter
+// ✅ consistent formatter for stored timestamps
 const formatTime = (dateString: string) =>
   new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Europe/London',
@@ -39,7 +39,7 @@ export default function Home() {
     loadUser()
   }, [])
 
-  // ✅ LIVE CLOCK (FIXED)
+  // LIVE CLOCK (fixed)
   useEffect(() => {
     const interval = setInterval(() => {
       const now = new Date()
@@ -86,33 +86,50 @@ export default function Home() {
     fetchData()
   }, [user])
 
+  // CLOCK IN (fixed saving bug)
   const clockIn = async () => {
     if (saving) return
     setSaving(true)
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('time_logs')
       .insert([{ user_id: user.id, clock_in: new Date().toISOString() }])
       .select()
       .single()
 
-    setActiveLog(data)
+    if (error) {
+      console.error(error)
+      toast.error('Failed to clock in')
+    } else {
+      setActiveLog(data)
+      toast.success('Clocked in')
+    }
+
     setSaving(false)
   }
 
+  // CLOCK OUT (fixed saving bug)
   const clockOut = async () => {
-    if (!activeLog) return
+    if (!activeLog || saving) return
     setSaving(true)
 
-    await supabase
+    const { error } = await supabase
       .from('time_logs')
       .update({ clock_out: new Date().toISOString() })
       .eq('id', activeLog.id)
 
-    setActiveLog(null)
+    if (error) {
+      console.error(error)
+      toast.error('Failed to clock out')
+    } else {
+      setActiveLog(null)
+      toast.success('Clocked out')
+    }
+
     setSaving(false)
   }
 
+  // HELPERS
   const getDuration = (log: TimeLog) => {
     const start = new Date(log.clock_in + 'Z').getTime()
     const end = log.clock_out
@@ -128,6 +145,7 @@ export default function Home() {
     return h > 0 ? `${h}h ${m}m` : `${m}m`
   }
 
+  // WEEK DATA
   const startOfWeek = new Date()
   startOfWeek.setDate(startOfWeek.getDate() - (startOfWeek.getDay() || 7) + 1)
   startOfWeek.setHours(0, 0, 0, 0)
@@ -148,12 +166,12 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-100">
 
-      {/* ✅ HEADER BACK */}
+      {/* ✅ CORRECT NAV */}
       <Header />
 
       <div className="max-w-md mx-auto px-5 pt-6 pb-10 flex flex-col gap-5">
 
-        {/* BUTTON */}
+        {/* TOP ACTION */}
         <TimerCard
           activeLog={activeLog}
           saving={saving}
@@ -163,7 +181,6 @@ export default function Home() {
 
         {/* TIME CARD */}
         <div className="bg-white shadow-xl border border-gray-300 rounded-3xl p-6 text-center">
-
           <p className="text-sm text-neutral-500 mb-1">
             Current time
           </p>
