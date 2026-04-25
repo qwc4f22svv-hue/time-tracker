@@ -13,6 +13,7 @@ type TimeLog = {
   clock_out: string | null
 }
 
+// ✅ consistent time formatter
 const formatTime = (dateString: string, withSeconds = false) =>
   new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Europe/London',
@@ -24,24 +25,18 @@ const formatTime = (dateString: string, withSeconds = false) =>
 
 export default function Home() {
   const [user, setUser] = useState<any>(null)
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-
   const [activeLog, setActiveLog] = useState<TimeLog | null>(null)
   const [logs, setLogs] = useState<TimeLog[]>([])
-
   const [saving, setSaving] = useState(false)
   const [currentTime, setCurrentTime] = useState('')
 
   // AUTH
   useEffect(() => {
-    let mounted = true
     const loadUser = async () => {
       const { data } = await supabase.auth.getSession()
-      if (mounted) setUser(data.session?.user ?? null)
+      setUser(data.session?.user ?? null)
     }
     loadUser()
-    return () => { mounted = false }
   }, [])
 
   // LIVE CLOCK
@@ -81,35 +76,7 @@ export default function Home() {
     fetchData()
   }, [user])
 
-  // AUTH ACTIONS
-  const handleLogin = async () => {
-    if (!email || !password) {
-      toast.error('Enter email and password')
-      return
-    }
-
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) return toast.error(error.message)
-
-    setUser(data.user)
-    toast.success('Welcome back 👋')
-  }
-
-  const handleSignUp = async () => {
-    const { error } = await supabase.auth.signUp({ email, password })
-    if (error) return toast.error(error.message)
-
-    toast.success('Signup successful 🎉')
-  }
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    setUser(null)
-    setActiveLog(null)
-    toast('Logged out')
-  }
-
-  // CLOCK ACTIONS
+  // CLOCK IN
   const clockIn = async () => {
     if (saving) return
     setSaving(true)
@@ -120,15 +87,17 @@ export default function Home() {
       .select()
       .single()
 
-    if (error) toast.error('Failed to clock in')
-    else {
+    if (error) {
+      toast.error('Failed to clock in')
+    } else {
       setActiveLog(data)
-      toast.success('Clocked in ✅')
+      toast.success('Clocked in')
     }
 
     setSaving(false)
   }
 
+  // CLOCK OUT
   const clockOut = async () => {
     if (!activeLog || saving) return
     setSaving(true)
@@ -138,8 +107,11 @@ export default function Home() {
       .update({ clock_out: new Date().toISOString() })
       .eq('id', activeLog.id)
 
-    if (error) toast.error('Failed to clock out')
-    else toast.success('Clocked out 👋')
+    if (error) {
+      toast.error('Failed to clock out')
+    } else {
+      toast.success('Clocked out')
+    }
 
     setActiveLog(null)
     setSaving(false)
@@ -181,89 +153,49 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-100">
-      <div className="w-full max-w-md mx-auto px-5 pt-6 pb-28 flex flex-col gap-6">
+      <div className="max-w-md mx-auto px-5 pt-6 pb-10 flex flex-col gap-5">
 
-        {!user ? (
-          <div className="mt-12 bg-white p-7 rounded-3xl shadow-lg border border-gray-100">
-            <h1 className="text-2xl font-semibold mb-6 text-center text-black">
-              Time Tracker
-            </h1>
+        {/* 🔥 TOP ACTION */}
+        <TimerCard
+          activeLog={activeLog}
+          saving={saving}
+          onClockIn={clockIn}
+          onClockOut={clockOut}
+        />
 
-            <input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email"
-              className="w-full p-3 mb-4 rounded-xl border border-gray-300 text-black focus:ring-2 focus:ring-green-500"
-            />
+        {/* TIME CARD */}
+        <div className="bg-white shadow-lg border border-gray-100 rounded-3xl p-6 text-center">
 
-            <input
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              type="password"
-              placeholder="Password"
-              className="w-full p-3 mb-5 rounded-xl border border-gray-300 text-black focus:ring-2 focus:ring-green-500"
-            />
+          <p className="text-sm text-neutral-500 mb-1">
+            Current time
+          </p>
 
-            <button
-              onClick={handleLogin}
-              className="w-full bg-green-600 text-white py-3 rounded-2xl mb-3 shadow"
-            >
-              Login
-            </button>
+          <p className="text-3xl font-semibold text-black mb-3">
+            {currentTime}
+          </p>
 
-            <button
-              onClick={handleSignUp}
-              className="w-full bg-gray-100 py-3 rounded-2xl text-black"
-            >
-              Sign Up
-            </button>
-          </div>
-        ) : (
-          <>
-            {/* TIME CARD */}
-            <div className="bg-white shadow-lg border border-gray-100 rounded-3xl p-6 text-center">
-              <p className="text-sm text-neutral-600 mb-1">Current time</p>
-              <p className="text-3xl font-semibold text-black mb-3">
-                {currentTime}
-              </p>
+          {activeLog && (
+            <p className="text-sm text-neutral-700">
+              Started at{' '}
+              <span className="font-semibold text-black">
+                {formatTime(activeLog.clock_in)}
+              </span>
+            </p>
+          )}
+        </div>
 
-              {activeLog && (
-                <p className="text-sm text-neutral-700">
-                  Started at{' '}
-                  <span className="font-semibold text-black">
-                    {formatTime(activeLog.clock_in)}
-                  </span>
-                </p>
-              )}
-            </div>
+        {/* WEEKLY */}
+        <div className="bg-white shadow-lg border border-gray-100 rounded-3xl p-5">
+          <h2 className="text-lg font-semibold text-black mb-4">
+            Weekly Breakdown
+          </h2>
 
-            {/* WEEKLY */}
-            <div className="bg-white shadow-lg border border-gray-100 rounded-3xl p-5">
-              <h2 className="text-lg font-semibold text-black mb-4">
-                Weekly Breakdown
-              </h2>
+          <WeeklyBreakdown
+            weekData={weekData}
+            formatDuration={formatDuration}
+          />
+        </div>
 
-              <WeeklyBreakdown
-                weekData={weekData}
-                formatDuration={formatDuration}
-              />
-            </div>
-
-            <button
-              onClick={handleLogout}
-              className="text-sm text-red-600 text-center"
-            >
-              Logout
-            </button>
-
-            <TimerCard
-              activeLog={activeLog}
-              saving={saving}
-              onClockIn={clockIn}
-              onClockOut={clockOut}
-            />
-          </>
-        )}
       </div>
     </div>
   )

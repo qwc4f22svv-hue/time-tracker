@@ -19,32 +19,32 @@ export default function TimerCard({
   onClockOut,
 }: Props) {
   return (
-    <div className="mt-4">
+    <div className="w-full mb-4">
       {activeLog && (
-        <p className="text-center text-sm font-medium text-neutral-700 mb-3">
-          ● Session active
-        </p>
+        <div className="bg-green-50 border border-green-200 rounded-2xl p-3 mb-4 text-center">
+          <p className="text-sm font-medium text-green-700">
+            ● Session active
+          </p>
+        </div>
       )}
 
-      <div className="fixed bottom-4 left-0 right-0 px-5 max-w-md mx-auto">
-        {activeLog ? (
-          <button
-            onClick={onClockOut}
-            disabled={saving}
-            className="w-full bg-red-600 py-5 rounded-2xl text-lg font-semibold text-white shadow-xl active:scale-95 transition"
-          >
-            {saving ? 'Saving...' : 'Clock Out'}
-          </button>
-        ) : (
-          <button
-            onClick={onClockIn}
-            disabled={saving}
-            className="w-full bg-gradient-to-r from-green-600 to-green-500 py-5 rounded-2xl text-lg font-semibold text-white shadow-xl active:scale-95 transition"
-          >
-            {saving ? 'Saving...' : 'Clock In'}
-          </button>
-        )}
-      </div>
+      {activeLog ? (
+        <button
+          onClick={onClockOut}
+          disabled={saving}
+          className="w-full bg-green-600 py-5 rounded-2xl text-lg font-semibold text-white shadow-lg active:scale-95 transition"
+        >
+          {saving ? 'Saving...' : 'Clock Out'}
+        </button>
+      ) : (
+        <button
+          onClick={onClockIn}
+          disabled={saving}
+          className="w-full bg-gradient-to-r from-green-600 to-green-500 py-5 rounded-2xl text-lg font-semibold text-white shadow-lg active:scale-95 transition"
+        >
+          {saving ? 'Saving...' : 'Clock In'}
+        </button>
+      )}
     </div>
   )
 }
