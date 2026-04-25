@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import TimerCard from './components/TimerCard'
 import WeeklyBreakdown from './components/WeeklyBreakdown'
-import Header from './components/Header'
 import toast from 'react-hot-toast'
 
 type TimeLog = {
@@ -14,7 +13,7 @@ type TimeLog = {
   clock_out: string | null
 }
 
-// ✅ consistent formatter for stored timestamps
+// Format stored timestamps (UTC → London)
 const formatTime = (dateString: string) =>
   new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Europe/London',
@@ -39,7 +38,7 @@ export default function Home() {
     loadUser()
   }, [])
 
-  // LIVE CLOCK (fixed)
+  // LIVE CLOCK (reliable)
   useEffect(() => {
     const interval = setInterval(() => {
       const now = new Date()
@@ -86,47 +85,51 @@ export default function Home() {
     fetchData()
   }, [user])
 
-  // CLOCK IN (fixed saving bug)
+  // CLOCK IN (safe)
   const clockIn = async () => {
-    if (saving) return
+    if (saving || !user) return
     setSaving(true)
 
-    const { data, error } = await supabase
-      .from('time_logs')
-      .insert([{ user_id: user.id, clock_in: new Date().toISOString() }])
-      .select()
-      .single()
+    try {
+      const { data, error } = await supabase
+        .from('time_logs')
+        .insert([{ user_id: user.id, clock_in: new Date().toISOString() }])
+        .select()
+        .single()
 
-    if (error) {
-      console.error(error)
-      toast.error('Failed to clock in')
-    } else {
+      if (error) throw error
+
       setActiveLog(data)
       toast.success('Clocked in')
+    } catch (err) {
+      console.error(err)
+      toast.error('Clock in failed')
+    } finally {
+      setSaving(false)
     }
-
-    setSaving(false)
   }
 
-  // CLOCK OUT (fixed saving bug)
+  // CLOCK OUT (safe)
   const clockOut = async () => {
     if (!activeLog || saving) return
     setSaving(true)
 
-    const { error } = await supabase
-      .from('time_logs')
-      .update({ clock_out: new Date().toISOString() })
-      .eq('id', activeLog.id)
+    try {
+      const { error } = await supabase
+        .from('time_logs')
+        .update({ clock_out: new Date().toISOString() })
+        .eq('id', activeLog.id)
 
-    if (error) {
-      console.error(error)
-      toast.error('Failed to clock out')
-    } else {
+      if (error) throw error
+
       setActiveLog(null)
       toast.success('Clocked out')
+    } catch (err) {
+      console.error(err)
+      toast.error('Clock out failed')
+    } finally {
+      setSaving(false)
     }
-
-    setSaving(false)
   }
 
   // HELPERS
@@ -165,13 +168,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-100">
-
-      {/* ✅ CORRECT NAV */}
-      <Header />
-
       <div className="max-w-md mx-auto px-5 pt-6 pb-10 flex flex-col gap-5">
 
-        {/* TOP ACTION */}
+        {/* TOP BUTTON */}
         <TimerCard
           activeLog={activeLog}
           saving={saving}
