@@ -7,6 +7,9 @@ import { Home, Clock } from 'lucide-react'
 export default function BottomNav() {
   const pathname = usePathname()
 
+  // ❌ Hide on login page
+  if (pathname === '/') return null
+
   const navItems = [
     { name: 'Home', href: '/', icon: Home },
     { name: 'History', href: '/history', icon: Clock },
@@ -27,13 +30,13 @@ export default function BottomNav() {
               className="flex flex-col items-center text-xs"
             >
               <div
-                className={`flex flex-col items-center ${
+                className={`flex flex-col items-center transition ${
                   isActive
                     ? 'text-green-600 scale-105'
                     : 'text-black opacity-60'
                 }`}
               >
-                <Icon size={22} />
+                <Icon size={22} strokeWidth={2.2} />
                 <span className="mt-1 font-medium">{item.name}</span>
               </div>
 
