@@ -13,15 +13,14 @@ type TimeLog = {
   clock_out: string | null
 }
 
-const formatTime = (dateString: string, withSeconds = false) => {
-  return new Intl.DateTimeFormat('en-GB', {
+const formatTime = (dateString: string, withSeconds = false) =>
+  new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Europe/London',
     hour: '2-digit',
     minute: '2-digit',
     second: withSeconds ? '2-digit' : undefined,
     hour12: false,
   }).format(new Date(dateString + 'Z'))
-}
 
 export default function Home() {
   const [user, setUser] = useState<any>(null)
@@ -34,35 +33,27 @@ export default function Home() {
   const [saving, setSaving] = useState(false)
   const [currentTime, setCurrentTime] = useState('')
 
+  // AUTH
   useEffect(() => {
     let mounted = true
-
     const loadUser = async () => {
       const { data } = await supabase.auth.getSession()
       if (mounted) setUser(data.session?.user ?? null)
     }
-
     loadUser()
     return () => { mounted = false }
   }, [])
 
+  // LIVE CLOCK
   useEffect(() => {
     const interval = setInterval(() => {
-      const now = new Date()
-      setCurrentTime(
-        new Intl.DateTimeFormat('en-GB', {
-          timeZone: 'Europe/London',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: false,
-        }).format(now)
-      )
+      setCurrentTime(formatTime(new Date().toISOString(), true))
     }, 1000)
 
     return () => clearInterval(interval)
   }, [])
 
+  // FETCH DATA
   useEffect(() => {
     if (!user) {
       setActiveLog(null)
@@ -77,7 +68,7 @@ export default function Home() {
         .is('clock_out', null)
         .maybeSingle()
 
-      setActiveLog(active && active.clock_out === null ? active : null)
+      setActiveLog(active ?? null)
 
       const { data } = await supabase
         .from('time_logs')
@@ -90,17 +81,14 @@ export default function Home() {
     fetchData()
   }, [user])
 
+  // AUTH ACTIONS
   const handleLogin = async () => {
     if (!email || !password) {
       toast.error('Enter email and password')
       return
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) return toast.error(error.message)
 
     setUser(data.user)
@@ -121,29 +109,14 @@ export default function Home() {
     toast('Logged out')
   }
 
+  // CLOCK ACTIONS
   const clockIn = async () => {
     if (saving) return
     setSaving(true)
 
-    const { data: existing } = await supabase
-      .from('time_logs')
-      .select('*')
-      .eq('user_id', user.id)
-      .is('clock_out', null)
-      .maybeSingle()
-
-    if (existing) {
-      toast('You already have an active session')
-      setActiveLog(existing)
-      setSaving(false)
-      return
-    }
-
     const { data, error } = await supabase
       .from('time_logs')
-      .insert([
-        { user_id: user.id, clock_in: new Date().toISOString() },
-      ])
+      .insert([{ user_id: user.id, clock_in: new Date().toISOString() }])
       .select()
       .single()
 
@@ -164,7 +137,6 @@ export default function Home() {
       .from('time_logs')
       .update({ clock_out: new Date().toISOString() })
       .eq('id', activeLog.id)
-      .eq('user_id', user.id)
 
     if (error) toast.error('Failed to clock out')
     else toast.success('Clocked out 👋')
@@ -173,6 +145,7 @@ export default function Home() {
     setSaving(false)
   }
 
+  // HELPERS
   const getDuration = (log: TimeLog) => {
     const start = new Date(log.clock_in + 'Z').getTime()
     const end = log.clock_out
@@ -188,6 +161,7 @@ export default function Home() {
     return h > 0 ? `${h}h ${m}m` : `${m}m`
   }
 
+  // WEEK DATA
   const startOfWeek = new Date()
   startOfWeek.setDate(startOfWeek.getDate() - (startOfWeek.getDay() || 7) + 1)
   startOfWeek.setHours(0, 0, 0, 0)
@@ -206,8 +180,8 @@ export default function Home() {
   })
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-100 to-gray-200">
-      <div className="w-full max-w-md mx-auto px-5 pt-6 pb-28">
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-100">
+      <div className="w-full max-w-md mx-auto px-5 pt-6 pb-28 flex flex-col gap-6">
 
         {!user ? (
           <div className="mt-12 bg-white p-7 rounded-3xl shadow-lg border border-gray-100">
@@ -219,7 +193,7 @@ export default function Home() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Email"
-              className="w-full p-3 mb-4 rounded-xl border border-gray-300 bg-white text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 mb-4 rounded-xl border border-gray-300 text-black focus:ring-2 focus:ring-green-500"
             />
 
             <input
@@ -227,12 +201,12 @@ export default function Home() {
               onChange={(e) => setPassword(e.target.value)}
               type="password"
               placeholder="Password"
-              className="w-full p-3 mb-5 rounded-xl border border-gray-300 bg-white text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 mb-5 rounded-xl border border-gray-300 text-black focus:ring-2 focus:ring-green-500"
             />
 
             <button
               onClick={handleLogin}
-              className="w-full bg-blue-600 text-white py-3 rounded-2xl mb-3 shadow active:scale-95 transition"
+              className="w-full bg-green-600 text-white py-3 rounded-2xl mb-3 shadow"
             >
               Login
             </button>
@@ -245,32 +219,30 @@ export default function Home() {
             </button>
           </div>
         ) : (
-          <div className="flex flex-col gap-5">
-
-            <p className="text-center text-sm text-black">
-              Current time: {currentTime}
-            </p>
-
-            <div className="bg-white border border-gray-100 shadow-lg p-6 rounded-3xl">
+          <>
+            {/* TIME CARD */}
+            <div className="bg-white shadow-lg border border-gray-100 rounded-3xl p-6 text-center">
+              <p className="text-sm text-neutral-600 mb-1">Current time</p>
+              <p className="text-3xl font-semibold text-black mb-3">
+                {currentTime}
+              </p>
 
               {activeLog && (
-                <p className="text-center text-base text-black mb-4">
-                  You’ve been clocked in since{' '}
-                  <span className="font-semibold">
+                <p className="text-sm text-neutral-700">
+                  Started at{' '}
+                  <span className="font-semibold text-black">
                     {formatTime(activeLog.clock_in)}
                   </span>
                 </p>
               )}
-
-              <TimerCard
-                activeLog={activeLog}
-                saving={saving}
-                onClockIn={clockIn}
-                onClockOut={clockOut}
-              />
             </div>
 
-            <div className="bg-white border border-gray-100 shadow-lg p-5 rounded-3xl">
+            {/* WEEKLY */}
+            <div className="bg-white shadow-lg border border-gray-100 rounded-3xl p-5">
+              <h2 className="text-lg font-semibold text-black mb-4">
+                Weekly Breakdown
+              </h2>
+
               <WeeklyBreakdown
                 weekData={weekData}
                 formatDuration={formatDuration}
@@ -279,11 +251,18 @@ export default function Home() {
 
             <button
               onClick={handleLogout}
-              className="mt-2 text-sm text-red-600 text-center"
+              className="text-sm text-red-600 text-center"
             >
               Logout
             </button>
-          </div>
+
+            <TimerCard
+              activeLog={activeLog}
+              saving={saving}
+              onClockIn={clockIn}
+              onClockOut={clockOut}
+            />
+          </>
         )}
       </div>
     </div>

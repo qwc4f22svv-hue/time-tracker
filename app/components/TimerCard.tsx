@@ -19,25 +19,19 @@ export default function TimerCard({
   onClockOut,
 }: Props) {
   return (
-    <>
-      <div className="bg-neutral-900 p-4 rounded-xl mb-24">
-        {activeLog ? (
-          <p className="text-center text-sm text-gray-400">
-            Session active
-          </p>
-        ) : (
-          <p className="text-center text-sm text-gray-400">
-            Not clocked in
-          </p>
-        )}
-      </div>
+    <div className="mt-4">
+      {activeLog && (
+        <p className="text-center text-sm font-medium text-neutral-700 mb-3">
+          ● Session active
+        </p>
+      )}
 
-      <div className="fixed bottom-4 left-0 right-0 px-4 max-w-md mx-auto">
+      <div className="fixed bottom-4 left-0 right-0 px-5 max-w-md mx-auto">
         {activeLog ? (
           <button
             onClick={onClockOut}
             disabled={saving}
-            className="w-full bg-red-600 py-4 rounded-2xl font-semibold text-white shadow-lg active:scale-95 transition"
+            className="w-full bg-red-600 py-5 rounded-2xl text-lg font-semibold text-white shadow-xl active:scale-95 transition"
           >
             {saving ? 'Saving...' : 'Clock Out'}
           </button>
@@ -45,12 +39,12 @@ export default function TimerCard({
           <button
             onClick={onClockIn}
             disabled={saving}
-            className="w-full bg-green-600 py-4 rounded-2xl font-semibold text-white shadow-lg active:scale-95 transition"
+            className="w-full bg-gradient-to-r from-green-600 to-green-500 py-5 rounded-2xl text-lg font-semibold text-white shadow-xl active:scale-95 transition"
           >
             {saving ? 'Saving...' : 'Clock In'}
           </button>
         )}
       </div>
-    </>
+    </div>
   )
 }
