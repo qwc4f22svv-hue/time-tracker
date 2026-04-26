@@ -25,7 +25,7 @@ const formatTime = (dateString: string) =>
 
 export default function Home() {
   const [user, setUser] = useState<any>(null)
-  const [role, setRole] = useState<string | null>(null) // ✅ NEW
+  const [role, setRole] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   const [email, setEmail] = useState('')
@@ -71,7 +71,6 @@ export default function Home() {
     if (!user) return
 
     const fetchData = async () => {
-      // ✅ GET ROLE
       const { data: roleData } = await supabase
         .from('user_roles')
         .select('role')
@@ -81,7 +80,6 @@ export default function Home() {
       setRole(roleData?.role ?? null)
       console.log('ROLE:', roleData?.role)
 
-      // ACTIVE SESSION
       const { data: active } = await supabase
         .from('time_logs')
         .select('*')
@@ -91,7 +89,6 @@ export default function Home() {
 
       setActiveLog(active ?? null)
 
-      // ALL LOGS
       const { data } = await supabase
         .from('time_logs')
         .select('*')
@@ -127,6 +124,8 @@ export default function Home() {
     setSaving(true)
 
     try {
+      console.log('CLOCK IN USER ID:', user?.id)
+
       const { data, error } = await supabase
         .from('time_logs')
         .insert([
@@ -142,9 +141,9 @@ export default function Home() {
 
       setActiveLog(data)
       toast.success('Clocked in')
-    } catch (err) {
-      console.error(err)
-      toast.error('Clock in failed')
+    } catch (err: any) {
+      console.error('CLOCK IN ERROR:', err)
+      toast.error(err.message || 'Clock in failed')
     } finally {
       setSaving(false)
     }
@@ -166,9 +165,9 @@ export default function Home() {
 
       setActiveLog(null)
       toast.success('Clocked out')
-    } catch (err) {
-      console.error(err)
-      toast.error('Clock out failed')
+    } catch (err: any) {
+      console.error('CLOCK OUT ERROR:', err)
+      toast.error(err.message || 'Clock out failed')
     } finally {
       setSaving(false)
     }
@@ -210,12 +209,10 @@ export default function Home() {
 
   const weeklyTotal = weekData.reduce((sum, d) => sum + d.total, 0)
 
-  // LOADING
   if (loading) {
     return <div className="p-6 text-center">Loading...</div>
   }
 
-  // LOGIN
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
@@ -257,12 +254,10 @@ export default function Home() {
     )
   }
 
-  // MAIN APP
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-100">
       <div className="max-w-md mx-auto px-5 pt-4 pb-10 flex flex-col gap-4">
 
-        {/* ✅ ADMIN BUTTON */}
         {role === 'admin' && (
           <Link href="/admin">
             <button className="w-full bg-black text-white py-2 rounded-xl">
