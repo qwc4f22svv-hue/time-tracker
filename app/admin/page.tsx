@@ -7,6 +7,7 @@ export default function AdminPage() {
   const [user, setUser] = useState<any>(null)
   const [role, setRole] = useState<string | null>(null)
   const [activeUsers, setActiveUsers] = useState<any[]>([])
+  const [missingUsers, setMissingUsers] = useState<any[]>([]) // ✅ NEW
 
   // FORMAT TIME
   const formatTime = (dateString: string) =>
@@ -34,7 +35,7 @@ export default function AdminPage() {
 
       setRole(roleData?.role ?? null)
 
-      // ✅ get active sessions WITH profiles join
+      // ✅ ACTIVE USERS
       const { data: active } = await supabase
         .from('time_logs')
         .select(`
@@ -48,6 +49,29 @@ export default function AdminPage() {
         .is('clock_out', null)
 
       setActiveUsers(active || [])
+
+      // ✅ MISSING USERS LOGIC
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      const { data: allUsers } = await supabase
+        .from('profiles')
+        .select('id, email')
+
+      const { data: todayLogs } = await supabase
+        .from('time_logs')
+        .select('user_id, clock_in')
+        .gte('clock_in', today.toISOString())
+
+      const loggedInIds = new Set(
+        (todayLogs || []).map((l) => l.user_id)
+      )
+
+      const missing = (allUsers || []).filter(
+        (u) => !loggedInIds.has(u.id)
+      )
+
+      setMissingUsers(missing)
     }
 
     load()
@@ -70,6 +94,7 @@ export default function AdminPage() {
           Admin Dashboard
         </h1>
 
+        {/* ACTIVE USERS */}
         <div className="bg-white rounded-3xl p-5 shadow border border-gray-200">
           <h2 className="text-lg font-semibold mb-3">
             Currently Clocked In
@@ -91,6 +116,28 @@ export default function AdminPage() {
                 <p className="text-gray-500 text-xs">
                   Started at {formatTime(u.clock_in)}
                 </p>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* MISSING USERS */}
+        <div className="bg-white rounded-3xl p-5 shadow border border-gray-200 mt-4">
+          <h2 className="text-lg font-semibold mb-3">
+            Not Clocked In Today
+          </h2>
+
+          {missingUsers.length === 0 ? (
+            <p className="text-sm text-gray-500">
+              Everyone has clocked in 🎉
+            </p>
+          ) : (
+            missingUsers.map((u) => (
+              <div
+                key={u.id}
+                className="text-sm mb-2 border-b pb-2 last:border-0"
+              >
+                {u.email}
               </div>
             ))
           )}
