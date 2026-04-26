@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import TimerCard from './components/TimerCard'
 import WeeklyBreakdown from './components/WeeklyBreakdown'
 import toast from 'react-hot-toast'
+import Link from 'next/link'
 
 type TimeLog = {
   id: string
@@ -24,6 +25,7 @@ const formatTime = (dateString: string) =>
 
 export default function Home() {
   const [user, setUser] = useState<any>(null)
+  const [role, setRole] = useState<string | null>(null) // ✅ NEW
   const [loading, setLoading] = useState(true)
 
   const [email, setEmail] = useState('')
@@ -64,11 +66,22 @@ export default function Home() {
     return () => clearInterval(interval)
   }, [])
 
-  // FETCH DATA
+  // FETCH DATA + ROLE
   useEffect(() => {
     if (!user) return
 
     const fetchData = async () => {
+      // ✅ GET ROLE
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single()
+
+      setRole(roleData?.role ?? null)
+      console.log('ROLE:', roleData?.role)
+
+      // ACTIVE SESSION
       const { data: active } = await supabase
         .from('time_logs')
         .select('*')
@@ -78,6 +91,7 @@ export default function Home() {
 
       setActiveLog(active ?? null)
 
+      // ALL LOGS
       const { data } = await supabase
         .from('time_logs')
         .select('*')
@@ -194,15 +208,14 @@ export default function Home() {
     return { day, total }
   })
 
-  // ✅ WEEKLY TOTAL (NEW)
   const weeklyTotal = weekData.reduce((sum, d) => sum + d.total, 0)
 
-  // LOADING STATE
+  // LOADING
   if (loading) {
     return <div className="p-6 text-center">Loading...</div>
   }
 
-  // LOGIN SCREEN
+  // LOGIN
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
@@ -234,7 +247,6 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Autofill fix */}
         <style jsx global>{`
           input:-webkit-autofill {
             box-shadow: 0 0 0 1000px white inset !important;
@@ -250,6 +262,15 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-100">
       <div className="max-w-md mx-auto px-5 pt-4 pb-10 flex flex-col gap-4">
 
+        {/* ✅ ADMIN BUTTON */}
+        {role === 'admin' && (
+          <Link href="/admin">
+            <button className="w-full bg-black text-white py-2 rounded-xl">
+              Admin Dashboard
+            </button>
+          </Link>
+        )}
+
         <TimerCard
           activeLog={activeLog}
           saving={saving}
@@ -257,7 +278,6 @@ export default function Home() {
           onClockOut={clockOut}
         />
 
-        {/* CURRENT TIME CARD (IMPROVED) */}
         <div className="bg-white shadow-xl border border-gray-300 rounded-3xl p-6 text-center">
           <p className="text-sm text-neutral-400 mb-2">Current time</p>
           <p className="text-3xl font-semibold tracking-tight text-black mb-2">
@@ -274,7 +294,6 @@ export default function Home() {
           )}
         </div>
 
-        {/* WEEKLY BREAKDOWN (WITH TOTAL) */}
         <div className="bg-white shadow-xl border border-gray-300 rounded-3xl p-5">
           <h2 className="text-lg font-semibold mb-1">
             Weekly Breakdown
