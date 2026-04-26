@@ -18,7 +18,7 @@ export default function AdminPage() {
       hour12: false,
     }).format(new Date(dateString + 'Z'))
 
-  // ✅ WEEKLY REPORT (GROUPED)
+  // ✅ WEEKLY REPORT (FIXED JOIN)
   const downloadWeeklyReport = async () => {
     const startOfWeek = new Date()
     startOfWeek.setDate(startOfWeek.getDate() - (startOfWeek.getDay() || 7) + 1)
@@ -30,7 +30,9 @@ export default function AdminPage() {
         user_id,
         clock_in,
         clock_out,
-        profiles ( email )
+        profiles:profiles!time_logs_user_id_fkey (
+          email
+        )
       `)
       .gte('clock_in', startOfWeek.toISOString())
 
@@ -40,7 +42,6 @@ export default function AdminPage() {
       return
     }
 
-    // GROUP BY USER
     const totals: Record<string, { email: string; total: number }> = {}
 
     ;(data || []).forEach((log: any) => {
@@ -51,8 +52,7 @@ export default function AdminPage() {
 
       const duration = end - start
 
-      const email =
-        log.profiles?.[0]?.email || log.user_id
+      const email = log.profiles?.[0]?.email || log.user_id
 
       if (!totals[email]) {
         totals[email] = { email, total: 0 }
@@ -104,14 +104,16 @@ export default function AdminPage() {
 
       setRole(roleData?.role ?? null)
 
-      // ACTIVE USERS
+      // ✅ ACTIVE USERS (FIXED JOIN)
       const { data: active } = await supabase
         .from('time_logs')
         .select(`
           id,
           user_id,
           clock_in,
-          profiles ( email )
+          profiles:profiles!time_logs_user_id_fkey (
+            email
+          )
         `)
         .is('clock_out', null)
 
@@ -157,7 +159,7 @@ export default function AdminPage() {
           Admin Dashboard
         </h1>
 
-        {/* DOWNLOAD BUTTON */}
+        {/* DOWNLOAD */}
         <button
           onClick={downloadWeeklyReport}
           className="w-full bg-green-600 text-white py-2 rounded-xl mb-4"
