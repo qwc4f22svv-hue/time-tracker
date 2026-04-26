@@ -39,7 +39,7 @@ export default function AdminPage() {
       return
     }
 
-    const rows = (data || []).map((log) => {
+    const rows = (data || []).map((log: any) => {
       const start = new Date(log.clock_in)
       const end = log.clock_out ? new Date(log.clock_out) : null
 
@@ -48,7 +48,7 @@ export default function AdminPage() {
         : 0
 
       return [
-        log.profiles?.email || '',
+        log.profiles?.[0]?.email || '',
         start.toLocaleDateString('en-GB'),
         start.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
         end
@@ -165,13 +165,13 @@ export default function AdminPage() {
               No active users
             </p>
           ) : (
-            activeUsers.map((u) => (
+            activeUsers.map((u: any) => (
               <div
                 key={u.id}
                 className="text-sm mb-3 border-b pb-2 last:border-0"
               >
                 <p className="font-medium text-black">
-                  {u.profiles?.email || 'Unknown user'}
+                  {u.profiles?.[0]?.email || 'Unknown user'}
                 </p>
                 <p className="text-gray-500 text-xs">
                   Started at {formatTime(u.clock_in)}
@@ -192,7 +192,7 @@ export default function AdminPage() {
               Everyone has clocked in 🎉
             </p>
           ) : (
-            missingUsers.map((u) => (
+            missingUsers.map((u: any) => (
               <div
                 key={u.id}
                 className="text-sm mb-2 border-b pb-2 last:border-0"
