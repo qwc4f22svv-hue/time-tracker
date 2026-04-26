@@ -8,6 +8,15 @@ export default function AdminPage() {
   const [role, setRole] = useState<string | null>(null)
   const [activeUsers, setActiveUsers] = useState<any[]>([])
 
+  // FORMAT TIME
+  const formatTime = (dateString: string) =>
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/London',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(new Date(dateString + 'Z'))
+
   useEffect(() => {
     const load = async () => {
       const { data } = await supabase.auth.getSession()
@@ -25,10 +34,17 @@ export default function AdminPage() {
 
       setRole(roleData?.role ?? null)
 
-      // get active sessions
+      // ✅ get active sessions WITH profiles join
       const { data: active } = await supabase
         .from('time_logs')
-        .select('*')
+        .select(`
+          id,
+          user_id,
+          clock_in,
+          profiles (
+            email
+          )
+        `)
         .is('clock_out', null)
 
       setActiveUsers(active || [])
@@ -67,9 +83,14 @@ export default function AdminPage() {
             activeUsers.map((u) => (
               <div
                 key={u.id}
-                className="text-sm mb-2"
+                className="text-sm mb-3 border-b pb-2 last:border-0"
               >
-                User: {u.user_id}
+                <p className="font-medium text-black">
+                  {u.profiles?.email || 'Unknown user'}
+                </p>
+                <p className="text-gray-500 text-xs">
+                  Started at {formatTime(u.clock_in)}
+                </p>
               </div>
             ))
           )}
