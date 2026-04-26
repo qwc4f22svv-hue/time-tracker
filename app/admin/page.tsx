@@ -7,7 +7,7 @@ export default function AdminPage() {
   const [user, setUser] = useState<any>(null)
   const [role, setRole] = useState<string | null>(null)
   const [activeUsers, setActiveUsers] = useState<any[]>([])
-  const [missingUsers, setMissingUsers] = useState<any[]>([]) // ✅ NEW
+  const [missingUsers, setMissingUsers] = useState<any[]>([])
 
   // FORMAT TIME
   const formatTime = (dateString: string) =>
@@ -18,6 +18,64 @@ export default function AdminPage() {
       hour12: false,
     }).format(new Date(dateString + 'Z'))
 
+  // DOWNLOAD CSV
+  const downloadWeeklyReport = async () => {
+    const startOfWeek = new Date()
+    startOfWeek.setDate(startOfWeek.getDate() - (startOfWeek.getDay() || 7) + 1)
+    startOfWeek.setHours(0, 0, 0, 0)
+
+    const { data, error } = await supabase
+      .from('time_logs')
+      .select(`
+        clock_in,
+        clock_out,
+        profiles ( email )
+      `)
+      .gte('clock_in', startOfWeek.toISOString())
+
+    if (error) {
+      console.error(error)
+      alert('Failed to fetch report')
+      return
+    }
+
+    const rows = (data || []).map((log) => {
+      const start = new Date(log.clock_in)
+      const end = log.clock_out ? new Date(log.clock_out) : null
+
+      const duration = end
+        ? Math.floor((end.getTime() - start.getTime()) / 60000)
+        : 0
+
+      return [
+        log.profiles?.email || '',
+        start.toLocaleDateString('en-GB'),
+        start.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+        end
+          ? end.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+          : '',
+        duration,
+      ]
+    })
+
+    const csv = [
+      ['Email', 'Date', 'Clock In', 'Clock Out', 'Duration (mins)'],
+      ...rows,
+    ]
+      .map((r) => r.join(','))
+      .join('\n')
+
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'weekly-report.csv'
+    a.click()
+
+    URL.revokeObjectURL(url)
+  }
+
   useEffect(() => {
     const load = async () => {
       const { data } = await supabase.auth.getSession()
@@ -26,7 +84,7 @@ export default function AdminPage() {
 
       if (!user) return
 
-      // get role
+      // ROLE
       const { data: roleData } = await supabase
         .from('user_roles')
         .select('role')
@@ -35,22 +93,20 @@ export default function AdminPage() {
 
       setRole(roleData?.role ?? null)
 
-      // ✅ ACTIVE USERS
+      // ACTIVE USERS
       const { data: active } = await supabase
         .from('time_logs')
         .select(`
           id,
           user_id,
           clock_in,
-          profiles (
-            email
-          )
+          profiles ( email )
         `)
         .is('clock_out', null)
 
       setActiveUsers(active || [])
 
-      // ✅ MISSING USERS LOGIC
+      // MISSING USERS
       const today = new Date()
       today.setHours(0, 0, 0, 0)
 
@@ -77,13 +133,9 @@ export default function AdminPage() {
     load()
   }, [])
 
-  // 🔒 PROTECT PAGE
+  // PROTECT PAGE
   if (role !== 'admin') {
-    return (
-      <div className="p-6 text-center">
-        Not allowed
-      </div>
-    )
+    return <div className="p-6 text-center">Not allowed</div>
   }
 
   return (
@@ -93,6 +145,14 @@ export default function AdminPage() {
         <h1 className="text-xl font-semibold mb-4">
           Admin Dashboard
         </h1>
+
+        {/* DOWNLOAD BUTTON */}
+        <button
+          onClick={downloadWeeklyReport}
+          className="w-full bg-green-600 text-white py-2 rounded-xl mb-4"
+        >
+          Download Weekly Report
+        </button>
 
         {/* ACTIVE USERS */}
         <div className="bg-white rounded-3xl p-5 shadow border border-gray-200">
