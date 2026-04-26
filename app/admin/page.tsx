@@ -18,7 +18,7 @@ export default function AdminPage() {
       hour12: false,
     }).format(new Date(dateString + 'Z'))
 
-  // DOWNLOAD CSV
+  // ✅ WEEKLY REPORT (GROUPED)
   const downloadWeeklyReport = async () => {
     const startOfWeek = new Date()
     startOfWeek.setDate(startOfWeek.getDate() - (startOfWeek.getDay() || 7) + 1)
@@ -27,6 +27,7 @@ export default function AdminPage() {
     const { data, error } = await supabase
       .from('time_logs')
       .select(`
+        user_id,
         clock_in,
         clock_out,
         profiles ( email )
@@ -39,27 +40,37 @@ export default function AdminPage() {
       return
     }
 
-    const rows = (data || []).map((log: any) => {
-      const start = new Date(log.clock_in)
-      const end = log.clock_out ? new Date(log.clock_out) : null
+    // GROUP BY USER
+    const totals: Record<string, { email: string; total: number }> = {}
 
-      const duration = end
-        ? Math.floor((end.getTime() - start.getTime()) / 60000)
-        : 0
+    ;(data || []).forEach((log: any) => {
+      const start = new Date(log.clock_in).getTime()
+      const end = log.clock_out
+        ? new Date(log.clock_out).getTime()
+        : Date.now()
 
-      return [
-        log.profiles?.[0]?.email || '',
-        start.toLocaleDateString('en-GB'),
-        start.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-        end
-          ? end.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-          : '',
-        duration,
-      ]
+      const duration = end - start
+
+      const email =
+        log.profiles?.[0]?.email || log.user_id
+
+      if (!totals[email]) {
+        totals[email] = { email, total: 0 }
+      }
+
+      totals[email].total += duration
+    })
+
+    const rows = Object.values(totals).map((u) => {
+      const mins = Math.floor(u.total / 60000)
+      const h = Math.floor(mins / 60)
+      const m = mins % 60
+
+      return [u.email, `${h}h ${m}m`]
     })
 
     const csv = [
-      ['Email', 'Date', 'Clock In', 'Clock Out', 'Duration (mins)'],
+      ['Email', 'Total Time'],
       ...rows,
     ]
       .map((r) => r.join(','))
@@ -70,7 +81,7 @@ export default function AdminPage() {
 
     const a = document.createElement('a')
     a.href = url
-    a.download = 'weekly-report.csv'
+    a.download = 'weekly-summary.csv'
     a.click()
 
     URL.revokeObjectURL(url)
@@ -133,7 +144,7 @@ export default function AdminPage() {
     load()
   }, [])
 
-  // PROTECT PAGE
+  // 🔒 PROTECT PAGE
   if (role !== 'admin') {
     return <div className="p-6 text-center">Not allowed</div>
   }
@@ -171,7 +182,7 @@ export default function AdminPage() {
                 className="text-sm mb-3 border-b pb-2 last:border-0"
               >
                 <p className="font-medium text-black">
-                  {u.profiles?.[0]?.email || 'Unknown user'}
+                  {u.profiles?.[0]?.email || u.user_id}
                 </p>
                 <p className="text-gray-500 text-xs">
                   Started at {formatTime(u.clock_in)}
