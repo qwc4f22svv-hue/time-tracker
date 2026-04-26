@@ -40,6 +40,30 @@ export default function HistoryPage() {
     fetchLogs()
   }, [user])
 
+  // HELPERS
+  const getDuration = (log: TimeLog) => {
+    const start = new Date(log.clock_in + 'Z').getTime()
+    const end = log.clock_out
+      ? new Date(log.clock_out + 'Z').getTime()
+      : Date.now()
+    return end - start
+  }
+
+  const formatDuration = (ms: number) => {
+    const mins = Math.floor(ms / 60000)
+    const h = Math.floor(mins / 60)
+    const m = mins % 60
+    return h > 0 ? `${h}h ${m}m` : `${m}m`
+  }
+
+  const formatTime = (date: Date) =>
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/London',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(date)
+
   // 🔹 Get Monday of current week
   const getStartOfWeek = (date: Date) => {
     const d = new Date(date)
@@ -76,6 +100,7 @@ export default function HistoryPage() {
       const times = logs.map((log) => ({
         in: new Date(log.clock_in),
         out: log.clock_out ? new Date(log.clock_out) : null,
+        duration: getDuration(log),
       }))
 
       const earliest = new Date(
@@ -90,10 +115,16 @@ export default function HistoryPage() {
         )
       )
 
+      const totalDuration = times.reduce(
+        (sum, t) => sum + t.duration,
+        0
+      )
+
       return {
         date,
         earliest,
         latest,
+        totalDuration,
       }
     })
     .sort(
@@ -117,28 +148,24 @@ export default function HistoryPage() {
           dailySummary.map((day) => (
             <div
               key={day.date}
-              className="bg-white p-4 rounded-3xl shadow mb-3"
+              className="bg-white p-5 rounded-3xl shadow mb-3 border border-gray-200"
             >
-              <p className="text-sm text-gray-600 mb-1">
+              <p className="text-sm text-gray-500 mb-2">
                 {day.date}
               </p>
 
-              <p className="text-sm text-gray-900">
-                In:{' '}
-                {day.earliest.toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: false,
-                })}
-              </p>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-gray-700">
+                  In: {formatTime(day.earliest)}
+                </span>
+                <span className="text-gray-700">
+                  Out: {formatTime(day.latest)}
+                </span>
+              </div>
 
-              <p className="text-sm text-gray-900">
-                Out:{' '}
-                {day.latest.toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: false,
-                })}
+              {/* ✅ NEW: TOTAL DURATION */}
+              <p className="text-sm font-semibold text-black mt-2">
+                Duration: {formatDuration(day.totalDuration)}
               </p>
             </div>
           ))

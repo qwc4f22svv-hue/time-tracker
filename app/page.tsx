@@ -194,6 +194,9 @@ export default function Home() {
     return { day, total }
   })
 
+  // ✅ WEEKLY TOTAL (NEW)
+  const weeklyTotal = weekData.reduce((sum, d) => sum + d.total, 0)
+
   // LOADING STATE
   if (loading) {
     return <div className="p-6 text-center">Loading...</div>
@@ -230,6 +233,14 @@ export default function Home() {
             Login
           </button>
         </div>
+
+        {/* Autofill fix */}
+        <style jsx global>{`
+          input:-webkit-autofill {
+            box-shadow: 0 0 0 1000px white inset !important;
+            -webkit-text-fill-color: #000 !important;
+          }
+        `}</style>
       </div>
     )
   }
@@ -237,7 +248,7 @@ export default function Home() {
   // MAIN APP
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-100">
-      <div className="max-w-md mx-auto px-5 pt-6 pb-10 flex flex-col gap-5">
+      <div className="max-w-md mx-auto px-5 pt-4 pb-10 flex flex-col gap-4">
 
         <TimerCard
           activeLog={activeLog}
@@ -246,9 +257,10 @@ export default function Home() {
           onClockOut={clockOut}
         />
 
+        {/* CURRENT TIME CARD (IMPROVED) */}
         <div className="bg-white shadow-xl border border-gray-300 rounded-3xl p-6 text-center">
-          <p className="text-sm text-neutral-500 mb-1">Current time</p>
-          <p className="text-3xl font-semibold text-black mb-3">
+          <p className="text-sm text-neutral-400 mb-2">Current time</p>
+          <p className="text-3xl font-semibold tracking-tight text-black mb-2">
             {currentTime}
           </p>
 
@@ -262,10 +274,17 @@ export default function Home() {
           )}
         </div>
 
+        {/* WEEKLY BREAKDOWN (WITH TOTAL) */}
         <div className="bg-white shadow-xl border border-gray-300 rounded-3xl p-5">
-          <h2 className="text-lg font-semibold mb-4">
+          <h2 className="text-lg font-semibold mb-1">
             Weekly Breakdown
           </h2>
+
+          <p className="text-sm text-neutral-500 mb-4">
+            Total: <span className="font-semibold text-black">
+              {formatDuration(weeklyTotal)}
+            </span>
+          </p>
 
           <WeeklyBreakdown
             weekData={weekData}
