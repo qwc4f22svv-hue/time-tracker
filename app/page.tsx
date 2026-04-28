@@ -6,7 +6,7 @@ import TimerCard from './components/TimerCard'
 import WeeklyBreakdown from './components/WeeklyBreakdown'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation' // ✅ added
+import { useRouter } from 'next/navigation'
 
 type TimeLog = {
   id: string
@@ -25,7 +25,7 @@ const formatTime = (dateString: string) =>
   }).format(new Date(dateString + 'Z'))
 
 export default function Home() {
-  const router = useRouter() // ✅ added
+  const router = useRouter()
 
   const [user, setUser] = useState<any>(null)
   const [role, setRole] = useState<string | null>(null)
@@ -40,14 +40,25 @@ export default function Home() {
   const [saving, setSaving] = useState(false)
   const [currentTime, setCurrentTime] = useState('')
 
-  // AUTH LOAD
+  // ✅ AUTH LOAD (FIXED)
   useEffect(() => {
-    const loadUser = async () => {
-      const { data } = await supabase.auth.getSession()
-      setUser(data.session?.user ?? null)
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      setUser(session?.user ?? null)
       setLoading(false)
     }
-    loadUser()
+
+    getSession()
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null)
+      }
+    )
+
+    return () => {
+      listener.subscription.unsubscribe()
+    }
   }, [])
 
   // LIVE CLOCK
@@ -74,7 +85,7 @@ export default function Home() {
     if (!user) return
 
     const fetchData = async () => {
-      setLoading(true) // ✅ prevents flicker
+      setLoading(true)
 
       const { data: roleData } = await supabase
         .from('user_roles')
@@ -85,7 +96,6 @@ export default function Home() {
       const userRole = roleData?.role ?? null
       setRole(userRole)
 
-      // ✅ redirect BEFORE rendering anything else
       if (userRole === 'admin') {
         router.replace('/admin')
         return
@@ -107,7 +117,7 @@ export default function Home() {
 
       setLogs(data || [])
 
-      setLoading(false) // ✅ done loading AFTER role + data
+      setLoading(false)
     }
 
     fetchData()
@@ -218,7 +228,6 @@ export default function Home() {
 
   const weeklyTotal = weekData.reduce((sum, d) => sum + d.total, 0)
 
-  // ✅ prevents flicker completely
   if (loading) {
     return <div className="p-6 text-center">Loading...</div>
   }
