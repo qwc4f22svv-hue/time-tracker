@@ -6,6 +6,7 @@ import TimerCard from './components/TimerCard'
 import WeeklyBreakdown from './components/WeeklyBreakdown'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation' // ✅ added
 
 type TimeLog = {
   id: string
@@ -24,6 +25,8 @@ const formatTime = (dateString: string) =>
   }).format(new Date(dateString + 'Z'))
 
 export default function Home() {
+  const router = useRouter() // ✅ added
+
   const [user, setUser] = useState<any>(null)
   const [role, setRole] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -66,19 +69,27 @@ export default function Home() {
     return () => clearInterval(interval)
   }, [])
 
-  // FETCH DATA + ROLE
+  // FETCH DATA + ROLE + REDIRECT
   useEffect(() => {
     if (!user) return
 
     const fetchData = async () => {
+      setLoading(true) // ✅ prevents flicker
+
       const { data: roleData } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', user.id)
         .single()
 
-      setRole(roleData?.role ?? null)
-      console.log('ROLE:', roleData?.role)
+      const userRole = roleData?.role ?? null
+      setRole(userRole)
+
+      // ✅ redirect BEFORE rendering anything else
+      if (userRole === 'admin') {
+        router.replace('/admin')
+        return
+      }
 
       const { data: active } = await supabase
         .from('time_logs')
@@ -95,10 +106,12 @@ export default function Home() {
         .eq('user_id', user.id)
 
       setLogs(data || [])
+
+      setLoading(false) // ✅ done loading AFTER role + data
     }
 
     fetchData()
-  }, [user])
+  }, [user, router])
 
   // LOGIN
   const handleLogin = async () => {
@@ -124,8 +137,6 @@ export default function Home() {
     setSaving(true)
 
     try {
-      console.log('CLOCK IN USER ID:', user?.id)
-
       const { data, error } = await supabase
         .from('time_logs')
         .insert([
@@ -142,7 +153,6 @@ export default function Home() {
       setActiveLog(data)
       toast.success('Clocked in')
     } catch (err: any) {
-      console.error('CLOCK IN ERROR:', err)
       toast.error(err.message || 'Clock in failed')
     } finally {
       setSaving(false)
@@ -166,7 +176,6 @@ export default function Home() {
       setActiveLog(null)
       toast.success('Clocked out')
     } catch (err: any) {
-      console.error('CLOCK OUT ERROR:', err)
       toast.error(err.message || 'Clock out failed')
     } finally {
       setSaving(false)
@@ -209,6 +218,7 @@ export default function Home() {
 
   const weeklyTotal = weekData.reduce((sum, d) => sum + d.total, 0)
 
+  // ✅ prevents flicker completely
   if (loading) {
     return <div className="p-6 text-center">Loading...</div>
   }
@@ -243,13 +253,6 @@ export default function Home() {
             Login
           </button>
         </div>
-
-        <style jsx global>{`
-          input:-webkit-autofill {
-            box-shadow: 0 0 0 1000px white inset !important;
-            -webkit-text-fill-color: #000 !important;
-          }
-        `}</style>
       </div>
     )
   }
