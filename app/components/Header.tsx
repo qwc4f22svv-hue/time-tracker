@@ -2,19 +2,13 @@
 
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
-import { useEffect, useState } from 'react'
+import { useAuth } from '../providers/AuthProvider' // ✅ use global auth
 
 export default function Header() {
-  const [user, setUser] = useState<any>(null)
+  const { user, loading } = useAuth() // ✅ reactive
 
-  useEffect(() => {
-    const getUser = async () => {
-      const { data } = await supabase.auth.getSession()
-      setUser(data.session?.user ?? null)
-    }
-
-    getUser()
-  }, [])
+  // ✅ prevent flicker
+  if (loading) return null
 
   // ❌ Hide header if NOT logged in
   if (!user) return null

@@ -3,21 +3,14 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Home, Clock } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { supabase } from '../../lib/supabase'
+import { useAuth } from '../providers/AuthProvider' // ✅ use global auth
 
 export default function BottomNav() {
   const pathname = usePathname()
-  const [user, setUser] = useState<any>(null)
+  const { user, loading } = useAuth() // ✅ reactive
 
-  useEffect(() => {
-    const getUser = async () => {
-      const { data } = await supabase.auth.getSession()
-      setUser(data.session?.user ?? null)
-    }
-
-    getUser()
-  }, [])
+  // ✅ prevent flicker / incorrect render
+  if (loading) return null
 
   // ❌ Hide if not logged in
   if (!user) return null

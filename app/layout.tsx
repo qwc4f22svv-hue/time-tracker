@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google"
 import Header from "./components/Header"
 import BottomNav from "./components/BottomNav"
 import "./globals.css"
+import { AuthProvider } from './providers/AuthProvider'
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,17 +33,22 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-white text-black">
 
-        {/* Header ALWAYS rendered */}
-        <Header />
+        {/* ✅ WRAP EVERYTHING */}
+        <AuthProvider>
 
-        <Toaster position="top-center" />
+          {/* Header ALWAYS rendered */}
+          <Header />
 
-        <main className="flex-1 w-full">
-          {children}
-        </main>
+          <Toaster position="top-center" />
 
-        {/* Bottom Nav ALWAYS rendered */}
-        <BottomNav />
+          <main className="flex-1 w-full">
+            {children}
+          </main>
+
+          {/* Bottom Nav ALWAYS rendered */}
+          <BottomNav />
+
+        </AuthProvider>
 
       </body>
     </html>
