@@ -9,7 +9,6 @@ export default function AdminPage() {
   const [activeUsers, setActiveUsers] = useState<any[]>([])
   const [missingUsers, setMissingUsers] = useState<any[]>([])
 
-  // FORMAT TIME
   const formatTime = (dateString: string) =>
     new Intl.DateTimeFormat('en-GB', {
       timeZone: 'Europe/London',
@@ -19,7 +18,7 @@ export default function AdminPage() {
     }).format(new Date(dateString + 'Z'))
 
   // =========================
-  // ✅ WEEKLY TOTAL REPORT
+  // WEEKLY TOTAL REPORT
   // =========================
   const downloadWeeklyReport = async () => {
     const startOfWeek = new Date()
@@ -28,17 +27,13 @@ export default function AdminPage() {
 
     const { data: logs } = await supabase
       .from('time_logs')
-      .select('user_id, clock_in, clock_out')
+      .select(`
+        user_id,
+        clock_in,
+        clock_out,
+        profiles ( name )
+      `)
       .gte('clock_in', startOfWeek.toISOString())
-
-    const { data: users } = await supabase
-      .from('profiles')
-      .select('id, email')
-
-    const emailMap: Record<string, string> = {}
-    ;(users || []).forEach((u: any) => {
-      emailMap[u.id] = u.email
-    })
 
     const totals: Record<string, number> = {}
 
@@ -48,20 +43,20 @@ export default function AdminPage() {
         ? new Date(log.clock_out).getTime()
         : Date.now()
 
-      const email = emailMap[log.user_id] || log.user_id
+      const name = log.profiles?.name || log.user_id
 
-      if (!totals[email]) totals[email] = 0
-      totals[email] += end - start
+      if (!totals[name]) totals[name] = 0
+      totals[name] += end - start
     })
 
-    const rows = Object.entries(totals).map(([email, total]) => {
+    const rows = Object.entries(totals).map(([name, total]) => {
       const mins = Math.floor(total / 60000)
       const h = Math.floor(mins / 60)
       const m = mins % 60
-      return [email, `${h}h ${m}m`]
+      return [name, `${h}h ${m}m`]
     })
 
-    const csv = [['Email', 'Total Time'], ...rows]
+    const csv = [['Name', 'Total Time'], ...rows]
       .map((r) => r.join(','))
       .join('\n')
 
@@ -69,7 +64,7 @@ export default function AdminPage() {
   }
 
   // =========================
-  // ✅ WEEKLY BREAKDOWN REPORT
+  // WEEKLY BREAKDOWN REPORT
   // =========================
   const downloadWeeklyBreakdown = async () => {
     const startOfWeek = new Date()
@@ -81,18 +76,14 @@ export default function AdminPage() {
 
     const { data: logs } = await supabase
       .from('time_logs')
-      .select('user_id, clock_in, clock_out')
+      .select(`
+        user_id,
+        clock_in,
+        clock_out,
+        profiles ( name )
+      `)
       .gte('clock_in', startOfWeek.toISOString())
       .lt('clock_in', endOfWeek.toISOString())
-
-    const { data: users } = await supabase
-      .from('profiles')
-      .select('id, email')
-
-    const emailMap: Record<string, string> = {}
-    ;(users || []).forEach((u: any) => {
-      emailMap[u.id] = u.email
-    })
 
     const days: Date[] = []
     for (let i = 0; i < 7; i++) {
@@ -105,15 +96,15 @@ export default function AdminPage() {
 
     ;(logs || []).forEach((log: any) => {
       const dayKey = new Date(log.clock_in).toISOString().split('T')[0]
-      const email = emailMap[log.user_id] || log.user_id
+      const name = log.profiles?.name || log.user_id
 
-      if (!dataMap[email]) dataMap[email] = {}
-      if (!dataMap[email][dayKey]) dataMap[email][dayKey] = []
+      if (!dataMap[name]) dataMap[name] = {}
+      if (!dataMap[name][dayKey]) dataMap[name][dayKey] = []
 
-      dataMap[email][dayKey].push(log)
+      dataMap[name][dayKey].push(log)
     })
 
-    const header = ['Email']
+    const header = ['Name']
 
     days.forEach((d) => {
       header.push(
@@ -125,12 +116,12 @@ export default function AdminPage() {
       )
     })
 
-    const rows = Object.keys(dataMap).map((email) => {
-      const row: string[] = [email]
+    const rows = Object.keys(dataMap).map((name) => {
+      const row: string[] = [name]
 
       days.forEach((d) => {
         const key = d.toISOString().split('T')[0]
-        const logs = dataMap[email][key] || []
+        const logs = dataMap[name][key] || []
 
         if (!logs.length) {
           row.push('')
@@ -162,9 +153,7 @@ export default function AdminPage() {
             minute: '2-digit',
           })
 
-        row.push(
-          `${format(earliest)}-${format(latest)} (${h}h ${m}m)`
-        )
+        row.push(`${format(earliest)}-${format(latest)} (${h}h ${m}m)`)
       })
 
       return row
@@ -177,7 +166,6 @@ export default function AdminPage() {
     downloadCSV(csv, 'weekly-breakdown.csv')
   }
 
-  // DOWNLOAD HELPER
   const downloadCSV = (csv: string, filename: string) => {
     const blob = new Blob([csv], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
@@ -209,23 +197,20 @@ export default function AdminPage() {
 
       setRole(roleData?.role ?? null)
 
+      // ACTIVE USERS
       const { data: logs } = await supabase
         .from('time_logs')
-        .select('id, user_id, clock_in')
+        .select(`
+          id,
+          user_id,
+          clock_in,
+          profiles ( name )
+        `)
         .is('clock_out', null)
-
-      const { data: users } = await supabase
-        .from('profiles')
-        .select('id, email')
-
-      const emailMap: Record<string, string> = {}
-      ;(users || []).forEach((u: any) => {
-        emailMap[u.id] = u.email
-      })
 
       const active = (logs || []).map((l: any) => ({
         ...l,
-        email: emailMap[l.user_id] || l.user_id,
+        name: l.profiles?.name || l.user_id,
       }))
 
       setActiveUsers(active)
@@ -242,6 +227,10 @@ export default function AdminPage() {
       const loggedIds = new Set(
         (todayLogs || []).map((l) => l.user_id)
       )
+
+      const { data: users } = await supabase
+        .from('profiles')
+        .select('id, name')
 
       const missing = (users || []).filter(
         (u) => !loggedIds.has(u.id)
@@ -265,7 +254,6 @@ export default function AdminPage() {
           Admin Dashboard
         </h1>
 
-        {/* BUTTONS */}
         <button
           onClick={downloadWeeklyReport}
           className="w-full bg-green-600 text-white py-2 rounded-xl mb-2"
@@ -280,7 +268,6 @@ export default function AdminPage() {
           Download Weekly Breakdown
         </button>
 
-        {/* ACTIVE USERS */}
         <div className="bg-white rounded-3xl p-5 shadow border">
           <h2 className="text-lg font-semibold mb-3">
             Currently Clocked In
@@ -291,7 +278,7 @@ export default function AdminPage() {
           ) : (
             activeUsers.map((u: any) => (
               <div key={u.id} className="mb-2">
-                <p className="font-medium">{u.email}</p>
+                <p className="font-medium">{u.name}</p>
                 <p className="text-xs text-gray-500">
                   Started at {formatTime(u.clock_in)}
                 </p>
@@ -300,7 +287,6 @@ export default function AdminPage() {
           )}
         </div>
 
-        {/* MISSING USERS */}
         <div className="bg-white rounded-3xl p-5 shadow border mt-4">
           <h2 className="text-lg font-semibold mb-3">
             Not Clocked In Today
@@ -310,7 +296,9 @@ export default function AdminPage() {
             <p>Everyone has clocked in 🎉</p>
           ) : (
             missingUsers.map((u: any) => (
-              <div key={u.id}>{u.email}</div>
+              <div key={u.id}>
+                {u.name || u.id}
+              </div>
             ))
           )}
         </div>
